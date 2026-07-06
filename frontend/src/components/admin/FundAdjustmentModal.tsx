@@ -7,27 +7,45 @@ import { Input } from '@/components/ui/input';
 import { SUPPORTED_CRYPTOS } from '@/lib/constants';
 import { cn, formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import api from '@/lib/api';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   userName?: string;
+  userId?: string;
   currentBalance?: number;
 }
 
-export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', currentBalance = 0 }: Props) {
+export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', userId, currentBalance = 0 }: Props) {
   const [type, setType] = useState<'ADD' | 'DEDUCT'>('ADD');
   const [asset, setAsset] = useState('USDT');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     if (!amount || Number(amount) <= 0) return toast.error('Enter a valid amount');
     if (!reason.trim()) return toast.error('A reason is required for audit logging');
-    toast.success(`${type === 'ADD' ? 'Added' : 'Deducted'} ${amount} ${asset} ${type === 'ADD' ? 'to' : 'from'} ${userName}. Action logged.`);
-    setAmount('');
-    setReason('');
-    onClose();
+    if (!userId) return toast.error('No user selected');
+    setSubmitting(true);
+    try {
+      await api.post('/admin/users/adjust-funds', {
+        userId,
+        asset,
+        amount: Number(amount),
+        type,
+        reason,
+      });
+      toast.success(`${type === 'ADD' ? 'Added' : 'Deducted'} ${amount} ${asset} ${type === 'ADD' ? 'to' : 'from'} ${userName}. Action logged.`);
+      setAmount('');
+      setReason('');
+      onClose();
+    } catch {
+      toast.error('Adjustment failed — action not applied.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -64,7 +82,7 @@ export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', curren
 
         <div className="flex gap-3">
           <Button variant="outline" fullWidth onClick={onClose}>Cancel</Button>
-          <Button variant={type === 'ADD' ? 'success' : 'danger'} fullWidth onClick={submit}>
+          <Button variant={type === 'ADD' ? 'success' : 'danger'} fullWidth isLoading={submitting} onClick={submit}>
             {type === 'ADD' ? 'Add' : 'Deduct'} Funds
           </Button>
         </div>

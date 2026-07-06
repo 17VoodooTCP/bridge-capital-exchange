@@ -43,40 +43,6 @@ export function useAuth() {
     router.push('/login');
   }, [storeLogout, router]);
 
-  // Demo login — bypasses API for development
-  const demoLogin = useCallback(() => {
-    const demoUser = {
-      id: 'user-001',
-      email: 'demo@bridgecapital.com',
-      name: 'John Smith',
-      role: 'USER' as const,
-      kycStatus: 'APPROVED' as const,
-      isHeld: false,
-      twoFactorEnabled: false,
-      country: 'US',
-      createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-    };
-    setAuth(demoUser, 'demo-token-123');
-    toast.success('Welcome back, John!');
-    router.push('/dashboard');
-  }, [setAuth, router]);
-
-  const demoAdminLogin = useCallback(() => {
-    const adminUser = {
-      id: 'admin-001',
-      email: 'admin@bridgecapital.com',
-      name: 'Admin User',
-      role: 'ADMIN' as const,
-      kycStatus: 'APPROVED' as const,
-      isHeld: false,
-      twoFactorEnabled: true,
-      createdAt: new Date().toISOString(),
-    };
-    setAuth(adminUser, 'admin-token-456');
-    toast.success('Admin access granted');
-    router.push('/admin');
-  }, [setAuth, router]);
-
   return {
     user,
     token,
@@ -85,7 +51,5 @@ export function useAuth() {
     register,
     logout,
     updateUser,
-    demoLogin,
-    demoAdminLogin,
   };
 }

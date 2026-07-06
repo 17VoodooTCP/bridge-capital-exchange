@@ -7,6 +7,8 @@ import {
   Apple, Play, Sparkles, TrendingUp, X, User, Mail, Lock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { authApi } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/Logo';
 import { AssetIcon } from '@/components/ui/AssetIcon';
@@ -19,6 +21,7 @@ const glass = 'backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] round
 
 export default function LandingPage() {
   const router = useRouter();
+  const { setAuth } = useAuthStore();
   const { assets } = useMarketData();
   const [heroTab, setHeroTab] = useState<'hot' | 'gainers'>('hot');
   const [signupOpen, setSignupOpen] = useState(false);
@@ -43,9 +46,17 @@ export default function LandingPage() {
     if (!form.name.trim() || !form.email.trim()) return toast.error('Please enter your name and email');
     if (form.password.length < 8) return toast.error('Password must be at least 8 characters');
     setCreating(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    toast.success(`Welcome to Bridge Capital, ${form.name.split(' ')[0]}! 🎉`);
-    router.push('/dashboard');
+    try {
+      const data = await authApi.register({ name: form.name.trim(), email: form.email.trim(), password: form.password, country: 'US' });
+      setAuth(data.user, data.accessToken, data.refreshToken);
+      toast.success(`Welcome to Bridge Capital, ${form.name.split(' ')[0]}! 🎉`);
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg === 'Email already registered' ? 'This email is already registered — try logging in.' : 'Could not create account. Please try again.');
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (

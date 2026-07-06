@@ -60,8 +60,13 @@ export class AdminService {
     return updated;
   }
 
-  createUser(dto: { name: string; email: string; passwordHash: string; country?: string }) {
-    return this.prisma.user.create({ data: dto }).catch(() => ({ id: `user-${Date.now()}`, ...dto }));
+  async createUser(dto: { name: string; email: string; password: string; country?: string }) {
+    const bcrypt = await import('bcryptjs');
+    const passwordHash = await bcrypt.hash(dto.password || Math.random().toString(36), 10);
+    return this.prisma.user.create({
+      data: { name: dto.name, email: dto.email, passwordHash, country: dto.country },
+      select: { id: true, name: true, email: true, role: true, kycStatus: true, isHeld: true, country: true, createdAt: true },
+    });
   }
 
   listTransactions(status?: string) {

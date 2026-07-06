@@ -8,30 +8,17 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated, setAuth } = useAuthStore();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isAuthenticated } = useAuthStore();
   const [ready, setReady] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Demo auth guard: auto-provision a demo session if none exists
     if (!isAuthenticated) {
-      setAuth(
-        {
-          id: 'user-001',
-          email: 'demo@bridgecapital.com',
-          name: 'John Smith',
-          role: 'USER',
-          kycStatus: 'APPROVED',
-          isHeld: false,
-          twoFactorEnabled: false,
-          country: 'US',
-          createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-        },
-        'demo-token-123'
-      );
+      router.replace('/login');
+      return;
     }
     setReady(true);
-  }, [isAuthenticated, setAuth]);
+  }, [isAuthenticated, router]);
 
   if (!ready) {
     return (

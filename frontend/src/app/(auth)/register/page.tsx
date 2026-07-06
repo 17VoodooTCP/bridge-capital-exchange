@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 const COUNTRIES = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Singapore', 'Japan', 'India', 'Brazil', 'Other'];
 
 export default function RegisterPage() {
-  const { register, demoLogin } = useAuth();
+  const { register } = useAuth();
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', country: 'United States' });
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,9 +27,9 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register({ name: form.name, email: form.email, password: form.password, country: form.country });
-    } catch {
-      toast.error('Registration unavailable — launching demo account');
-      demoLogin();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg === 'Email already registered' ? 'This email is already registered.' : 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
