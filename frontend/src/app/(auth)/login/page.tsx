@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
-  const { login, demoLogin, demoAdminLogin } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [twoFA, setTwoFA] = useState('');
@@ -28,8 +28,7 @@ export default function LoginPage() {
     try {
       await login({ email, password, twoFactorCode: twoFA || undefined });
     } catch {
-      toast.error('Invalid credentials. Try the demo login below.');
-      setShow2FA(true);
+      toast.error('Invalid email or password.');
     } finally {
       setLoading(false);
     }
@@ -117,14 +116,6 @@ export default function LoginPage() {
               Sign In
             </Button>
           </form>
-
-          <div className="my-6 flex items-center gap-3 text-xs text-[#6E7681]">
-            <div className="flex-1 h-px bg-[#21262D]" /> DEMO ACCESS <div className="flex-1 h-px bg-[#21262D]" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="secondary" onClick={demoLogin}>Demo User</Button>
-            <Button variant="secondary" onClick={demoAdminLogin}>Demo Admin</Button>
-          </div>
 
           <p className="text-center text-sm text-[#8B949E] mt-8">
             Don&apos;t have an account?{' '}

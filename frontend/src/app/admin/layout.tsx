@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Bell, Shield } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
@@ -7,22 +8,18 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/authStore';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user, setAuth } = useAuthStore();
+  const router = useRouter();
+  const { isAuthenticated, user } = useAuthStore();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'ADMIN') {
-      setAuth(
-        {
-          id: 'admin-001', email: 'admin@bridgecapital.com', name: 'Admin User',
-          role: 'ADMIN', kycStatus: 'APPROVED', isHeld: false, twoFactorEnabled: true,
-          createdAt: new Date().toISOString(),
-        },
-        'admin-token-456'
-      );
+    const isAdmin = isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN');
+    if (!isAdmin) {
+      router.replace('/admin-login');
+      return;
     }
     setReady(true);
-  }, [isAuthenticated, user, setAuth]);
+  }, [isAuthenticated, user, router]);
 
   if (!ready) return <div className="min-h-screen flex items-center justify-center bg-[#0A0B0D]"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /></div>;
 
