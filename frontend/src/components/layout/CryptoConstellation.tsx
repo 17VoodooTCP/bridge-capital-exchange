@@ -57,6 +57,12 @@ export function CryptoConstellation({ className }: { className?: string }) {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       width = parent.clientWidth;
       height = parent.clientHeight;
+      // Container hidden or collapsed (e.g. mobile breakpoints) — skip entirely.
+      // Reading pixels from a 0-size canvas throws on iOS Safari.
+      if (width < 40 || height < 40) {
+        particles = [];
+        return;
+      }
       canvas.width = width * dpr;
       canvas.height = height * dpr;
       canvas.style.width = `${width}px`;
@@ -67,6 +73,7 @@ export function CryptoConstellation({ className }: { className?: string }) {
 
     // Sample pixel positions from offscreen-rendered "BC" text → logo formation targets
     const buildTargets = () => {
+      if (width < 40 || height < 40) return;
       const off = document.createElement('canvas');
       off.width = width;
       off.height = height;
@@ -87,7 +94,13 @@ export function CryptoConstellation({ className }: { className?: string }) {
       octx.quadraticCurveTo(width / 2, height / 2 + fontSize * 0.12, width / 2 + fontSize * 0.75, height / 2 + fontSize * 0.42);
       octx.stroke();
 
-      const img = octx.getImageData(0, 0, width, height).data;
+      let img: Uint8ClampedArray;
+      try {
+        img = octx.getImageData(0, 0, width, height).data;
+      } catch {
+        particles = [];
+        return;
+      }
       const targets: { x: number; y: number }[] = [];
       const step = Math.max(6, Math.floor(Math.min(width, height) / 42));
       for (let y = 0; y < height; y += step) {
