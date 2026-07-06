@@ -298,3 +298,19 @@ body {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-variant-numeric: tabular-nums;
 }
+
+/* ─── Site-wide light mode (inversion strategy) ───────────────────────────
+   The app's palette is authored in dark hex values; inverting luminance and
+   rotating hue produces a clean light theme. Media elements are re-inverted
+   so logos, QR codes, photos and charts keep their true colors. */
+html.light body {
+  filter: invert(0.94) hue-rotate(180deg);
+  background: #f3f4f6;
+}
+html.light img,
+html.light video,
+html.light canvas,
+html.light picture,
+html.light [data-noinvert] {
+  filter: invert(1) hue-rotate(180deg);
+}

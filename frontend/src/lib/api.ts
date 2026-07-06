@@ -24,7 +24,8 @@ import type {
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  // Generous timeout: free-tier backends cold-start and can take 30-60s on first request
+  timeout: 75000,
   headers: { 'Content-Type': 'application/json' },
 });
 

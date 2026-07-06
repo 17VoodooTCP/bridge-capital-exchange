@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, User, Globe, ArrowRight, Check } from 'lucide-react';
+import { Mail, Lock, User, Globe, ArrowRight, Check, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,13 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', country: 'United States' });
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+
+  const pwToggle = (
+    <button type="button" onClick={() => setShowPw(!showPw)} className="text-[#8B949E] hover:text-amber-400 transition-colors">
+      {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+    </button>
+  );
 
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -56,7 +63,7 @@ export default function RegisterPage() {
             <Input label="Full name" placeholder="John Smith" value={form.name} onChange={(e) => set('name', e.target.value)} prefix={<User size={15} />} />
             <Input label="Email address" type="email" placeholder="you@example.com" value={form.email} onChange={(e) => set('email', e.target.value)} prefix={<Mail size={15} />} />
             <div>
-              <Input label="Password" type="password" placeholder="At least 8 characters" value={form.password} onChange={(e) => set('password', e.target.value)} prefix={<Lock size={15} />} />
+              <Input label="Password" type={showPw ? 'text' : 'password'} placeholder="At least 8 characters" value={form.password} onChange={(e) => set('password', e.target.value)} prefix={<Lock size={15} />} suffix={pwToggle} />
               {strength && (
                 <div className="flex items-center gap-2 mt-1.5">
                   <div className="flex-1 h-1 rounded-full bg-[#21262D] overflow-hidden">
@@ -66,7 +73,7 @@ export default function RegisterPage() {
                 </div>
               )}
             </div>
-            <Input label="Confirm password" type="password" placeholder="Re-enter password" value={form.confirm} onChange={(e) => set('confirm', e.target.value)} prefix={<Lock size={15} />} />
+            <Input label="Confirm password" type={showPw ? 'text' : 'password'} placeholder="Re-enter password" value={form.confirm} onChange={(e) => set('confirm', e.target.value)} prefix={<Lock size={15} />} suffix={pwToggle} />
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-[#8B949E]">Country</label>

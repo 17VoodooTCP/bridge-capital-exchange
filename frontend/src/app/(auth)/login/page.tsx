@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, Shield, ArrowRight, KeyRound } from 'lucide-react';
+import { Mail, Lock, Shield, ArrowRight, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
 import { CryptoConstellation } from '@/components/layout/CryptoConstellation';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [show2FA, setShow2FA] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,11 +82,16 @@ export default function LoginPage() {
             />
             <Input
               label="Password"
-              type="password"
+              type={showPw ? 'text' : 'password'}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               prefix={<Lock size={15} />}
+              suffix={
+                <button type="button" onClick={() => setShowPw(!showPw)} className="text-[#8B949E] hover:text-amber-400 transition-colors">
+                  {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              }
             />
             {show2FA && (
               <Input
