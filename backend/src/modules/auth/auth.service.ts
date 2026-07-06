@@ -9,7 +9,7 @@ import { RegisterDto } from './dto/register.dto';
 export class AuthService {
   constructor(private readonly prisma: PrismaService, private readonly jwt: JwtService) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, meta?: { ip?: string; userAgent?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } }).catch(() => null);
     if (existing) throw new ConflictException('Email already registered');
 
@@ -17,10 +17,11 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: { name: dto.name, email: dto.email, passwordHash, country: dto.country },
     });
+    await this.recordSession(user.id, meta);
     return this.issueTokens(user);
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, meta?: { ip?: string; userAgent?: string }) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } }).catch(() => null);
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
@@ -34,7 +35,23 @@ export class AuthService {
     }
 
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }).catch(() => null);
+    await this.recordSession(user.id, meta);
     return this.issueTokens(user);
+  }
+
+  /** Records a login session with IP + parsed device info for the Devices page */
+  private async recordSession(userId: string, meta?: { ip?: string; userAgent?: string }) {
+    const ua = meta?.userAgent || '';
+    const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+    const os = /Windows/.test(ua) ? 'Windows' : /Mac OS X|Macintosh/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad|iOS/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : 'Unknown OS';
+    await this.prisma.loginSession.create({
+      data: {
+        userId,
+        ipAddress: meta?.ip || null,
+        deviceType: `${browser} on ${os}`,
+        userAgent: ua || null,
+      },
+    }).catch(() => null);
   }
 
   async logout(userId: string) {

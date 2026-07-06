@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/modal';
 import { AssetIcon } from '@/components/ui/AssetIcon';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import api from '@/lib/api';
 import type { StakingPlan } from '@/types';
 
 interface StakingCardProps {
@@ -30,18 +31,28 @@ export function StakingCard({ plan, stakedAmount = 0, earned = 0, className }: S
       return toast.error(`Minimum stake is ${plan.minAmount} ${plan.symbol}`);
     }
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    toast.success(`Successfully staked ${formatNumber(num)} ${plan.symbol}!`);
-    setIsLoading(false);
-    setShowStakeModal(false);
-    setAmount('');
+    try {
+      await api.post('/earn/stake', { planId: plan.id, amount: num });
+      toast.success(`Successfully staked ${formatNumber(num)} ${plan.symbol}!`);
+      setShowStakeModal(false);
+      setAmount('');
+      // Refresh so positions/balances reflect the new stake
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Stake failed. Check your balance and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleUnstake = async () => {
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    toast.success(`Unstaked ${formatNumber(stakedAmount)} ${plan.symbol}`);
-    setIsLoading(false);
+    try {
+      toast.success(`Use the My Positions tab to unstake.`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const utilization = plan.totalStaked / (plan.totalStaked + plan.availableQuota);

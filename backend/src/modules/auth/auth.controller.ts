@@ -11,13 +11,13 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
-  register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto);
+  register(@Body() dto: RegisterDto, @Req() req: any) {
+    return this.auth.register(dto, { ip: req.ip, userAgent: req.headers['user-agent'] });
   }
 
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
+  login(@Body() dto: LoginDto, @Req() req: any) {
+    return this.auth.login(dto, { ip: req.ip, userAgent: req.headers['user-agent'] });
   }
 
   @ApiBearerAuth()
