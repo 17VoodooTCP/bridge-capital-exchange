@@ -51,7 +51,8 @@ export function useWalletData() {
         txs.map((t) => ({
           id: t.id,
           userId: '',
-          type: t.type,
+          // Present internal adjustments as ordinary deposits, exchange-style
+          type: (t.type === 'ADMIN_ADJUSTMENT' ? 'DEPOSIT' : t.type) as Transaction['type'],
           asset: t.asset,
           symbol: t.asset,
           amount: Number(t.amount),
@@ -103,5 +104,13 @@ export function useWalletData() {
 
   const totalUsdValue = balances.reduce((sum, b) => sum + b.usdValue, 0);
 
-  return { balances, transactions, totalUsdValue, isLoading, error, refresh };
+  // Fill in USD values from live prices for entries recorded without one
+  const displayTransactions = transactions.map((t) => {
+    if (t.usdValue > 0) return t;
+    const symbol = t.symbol.toUpperCase();
+    const price = symbol === 'USDT' || symbol === 'USDC' ? 1 : getPrice(symbol) || assets.find((a) => a.symbol === symbol)?.price || 0;
+    return { ...t, usdValue: t.amount * price };
+  });
+
+  return { balances, transactions: displayTransactions, totalUsdValue, isLoading, error, refresh };
 }

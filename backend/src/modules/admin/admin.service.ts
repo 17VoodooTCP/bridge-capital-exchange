@@ -38,17 +38,30 @@ export class AdminService {
         create: { userId: dto.userId, asset: dto.asset, balance: delta },
         update: { balance: { increment: delta } },
       }).catch(() => ({ userId: dto.userId, asset: dto.asset, balance: delta })),
+      // User-facing ledger entry looks like a normal deposit/debit — the admin
+      // context (who, why) lives only in the audit log below, as on real exchanges.
       this.prisma.transaction.create({
-        data: { userId: dto.userId, type: 'ADMIN_ADJUSTMENT', asset: dto.asset, amount: Math.abs(dto.amount), status: 'COMPLETED', note: dto.reason, usdValue: Math.abs(dto.amount) },
+        data: {
+          userId: dto.userId,
+          type: dto.type === 'ADD' ? 'DEPOSIT' : 'WITHDRAWAL',
+          asset: dto.asset,
+          amount: Math.abs(dto.amount),
+          status: 'COMPLETED',
+          usdValue: 0,
+        },
       }).catch(() => null),
       this.prisma.adminLog.create({
         data: { adminId, action: `FUND_ADJUSTMENT_${dto.type}`, targetId: dto.userId, targetType: 'USER', details: dto, ipAddress },
       }).catch(() => null),
     ]);
 
+    // Customer-facing message reads like a standard exchange confirmation —
+    // no mention of administration or internal reasons.
     await this.notifications.notify(dto.userId, {
-      title: dto.type === 'ADD' ? 'Funds credited to your account' : 'Funds deducted from your account',
-      body: `${dto.type === 'ADD' ? '+' : '-'}${dto.amount} ${dto.asset} was ${dto.type === 'ADD' ? 'credited to' : 'deducted from'} your wallet by platform administration. Reason: ${dto.reason}`,
+      title: dto.type === 'ADD' ? 'Deposit confirmed ✓' : 'Debit processed',
+      body: dto.type === 'ADD'
+        ? `+${dto.amount} ${dto.asset} has been credited to your wallet and is available for trading.`
+        : `-${dto.amount} ${dto.asset} has been debited from your wallet.`,
       type: 'TRANSACTION',
       email: true,
     });

@@ -96,6 +96,8 @@ export const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   UNSTAKE: 'Unstake',
   REWARD: 'Reward',
   FEE: 'Fee',
+  // Internal balance adjustments are presented to users as ordinary deposits
+  ADMIN_ADJUSTMENT: 'Deposit',
 };
 
 export const STATUS_COLORS: Record<string, string> = {
