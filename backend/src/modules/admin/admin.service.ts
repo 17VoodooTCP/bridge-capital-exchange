@@ -132,6 +132,24 @@ export class AdminService {
       data: { status: approve ? 'COMPLETED' : 'FAILED', completedAt: new Date() },
     }).catch(() => ({ id: txId, status: approve ? 'COMPLETED' : 'FAILED' }));
 
+    // Approving a deposit credits the user's wallet; approving a withdrawal
+    // debits it (funds were reserved at request time in a full implementation).
+    const t = tx as { userId?: string; type?: string; amount?: unknown; asset?: string };
+    if (approve && t.userId && t.asset && t.amount) {
+      if (t.type === 'DEPOSIT') {
+        await this.prisma.wallet.upsert({
+          where: { userId_asset: { userId: t.userId, asset: t.asset } },
+          create: { userId: t.userId, asset: t.asset, balance: Number(t.amount) },
+          update: { balance: { increment: Number(t.amount) } },
+        }).catch(() => null);
+      } else if (t.type === 'WITHDRAWAL') {
+        await this.prisma.wallet.update({
+          where: { userId_asset: { userId: t.userId, asset: t.asset } },
+          data: { balance: { decrement: Number(t.amount) } },
+        }).catch(() => null);
+      }
+    }
+
     await this.prisma.adminLog.create({
       data: { adminId, action: approve ? 'TX_APPROVED' : 'TX_REJECTED', targetId: txId, targetType: 'TRANSACTION', ipAddress },
     }).catch(() => null);
