@@ -32,6 +32,10 @@ export class WalletService {
       type: 'TRANSACTION',
       email: true,
     });
+    await this.notifications.notifyAdmin(
+      'New deposit pending approval',
+      `A deposit of ${dto.amount} ${dto.asset}${dto.network ? ` (${dto.network})` : ''} from user ${userId} is pending. Review it in Admin → Transactions.`,
+    );
     return tx;
   }
 
@@ -58,6 +62,10 @@ export class WalletService {
       type: 'TRANSACTION',
       email: true,
     });
+    await this.notifications.notifyAdmin(
+      'Withdrawal request needs review',
+      `User ${userId} requested a withdrawal of ${dto.amount} ${dto.asset} to ${dto.toAddress} (${dto.network}). Approve or reject it in Admin → Transactions.`,
+    );
     return tx;
   }
 

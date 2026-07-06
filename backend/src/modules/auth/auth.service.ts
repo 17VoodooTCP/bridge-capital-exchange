@@ -29,6 +29,10 @@ export class AuthService {
       type: 'ACCOUNT',
       email: true,
     });
+    await this.notifications.notifyAdmin(
+      'New user registration',
+      `${user.name} (${user.email}) just created an account${dto.country ? ` from ${dto.country}` : ''}.`,
+    );
     return this.issueTokens(user);
   }
 

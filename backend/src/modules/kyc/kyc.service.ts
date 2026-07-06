@@ -9,11 +9,19 @@ export class KycService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  submit(userId: string, dto: { type: string; fileUrl: string }) {
-    return this.prisma.$transaction([
+  async submit(userId: string, dto: { type: string; fileUrl: string }) {
+    const result = await this.prisma.$transaction([
       this.prisma.kYCDocument.create({ data: { userId, type: dto.type, fileUrl: dto.fileUrl } }),
       this.prisma.user.update({ where: { id: userId }, data: { kycStatus: 'PENDING' } }),
-    ]).catch(() => [{ id: `kyc-${Date.now()}`, ...dto, status: 'PENDING' }]);
+    ]);
+    const user = await this.prisma.user
+      .findUnique({ where: { id: userId }, select: { name: true, email: true } })
+      .catch(() => null);
+    await this.notifications.notifyAdmin(
+      'New KYC submission',
+      `${user?.name || 'A user'} (${user?.email || userId}) submitted a ${dto.type.replace(/_/g, ' ').toLowerCase()} for identity verification. Review it in Admin → KYC Review.`,
+    );
+    return result;
   }
 
   getStatus(userId: string) {

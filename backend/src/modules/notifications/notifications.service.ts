@@ -49,6 +49,19 @@ export class NotificationsService {
     }
   }
 
+  /**
+   * Emails the platform administrator (ADMIN_EMAIL env var) about events
+   * that need staff attention: signups, withdrawals, deposits, KYC submissions.
+   */
+  async notifyAdmin(subject: string, body: string) {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (!adminEmail) {
+      this.logger.warn(`ADMIN_EMAIL not set — skipping admin alert "${subject}"`);
+      return;
+    }
+    await this.sendEmail(adminEmail, `[ADMIN] ${subject}`, this.emailHtml('Admin', subject, body));
+  }
+
   // ─── Email delivery (Resend) ──────────────────────────────────────
 
   async sendEmail(to: string, subject: string, html: string) {
