@@ -1,0 +1,278 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  SUPPORT
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum KYCStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  BUY
+  SELL
+  TRANSFER
+  STAKE
+  UNSTAKE
+  REWARD
+  FEE
+  ADMIN_ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+  STOP_LIMIT
+  STOP_MARKET
+}
+
+enum OrderStatus {
+  OPEN
+  FILLED
+  PARTIALLY_FILLED
+  CANCELLED
+  REJECTED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  name             String
+  passwordHash     String
+  role             UserRole  @default(USER)
+  kycStatus        KYCStatus @default(NONE)
+  isHeld           Boolean   @default(false)
+  holdReason       String?
+  antiPhishingCode String?
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean   @default(false)
+  country          String?
+  phone            String?
+  avatarUrl        String?
+  refreshTokenHash String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastLoginAt      DateTime?
+
+  wallets       Wallet[]
+  transactions  Transaction[]
+  orders        Order[]
+  positions     StakingPosition[]
+  kycDocuments  KYCDocument[]
+  tickets       SupportTicket[]
+  messages      ChatMessage[]
+  sessions      LoginSession[]
+  adminLogs     AdminLog[]        @relation("AdminActor")
+}
+
+model Wallet {
+  id            String  @id @default(uuid())
+  userId        String
+  asset         String
+  balance       Decimal @default(0) @db.Decimal(36, 18)
+  lockedBalance Decimal @default(0) @db.Decimal(36, 18)
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, asset])
+}
+
+model Transaction {
+  id          String            @id @default(uuid())
+  userId      String
+  type        TransactionType
+  asset       String
+  amount      Decimal           @db.Decimal(36, 18)
+  fee         Decimal           @default(0) @db.Decimal(36, 18)
+  status      TransactionStatus @default(PENDING)
+  txHash      String?
+  fromAddress String?
+  toAddress   String?
+  network     String?
+  note        String?
+  usdValue    Decimal           @default(0) @db.Decimal(20, 2)
+  createdAt   DateTime          @default(now())
+  completedAt DateTime?
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  userId        String
+  symbol        String
+  assetName     String?
+  side          OrderSide
+  type          OrderType
+  amount        Decimal     @db.Decimal(36, 18)
+  price         Decimal     @default(0) @db.Decimal(36, 18)
+  filledAmount  Decimal     @default(0) @db.Decimal(36, 18)
+  averagePrice  Decimal     @default(0) @db.Decimal(36, 18)
+  fee           Decimal     @default(0) @db.Decimal(36, 18)
+  status        OrderStatus @default(OPEN)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model StakingPlan {
+  id            String            @id @default(uuid())
+  asset         String
+  name          String
+  apr           Float
+  duration      Int               @default(0)
+  isFlexible    Boolean           @default(false)
+  minAmount     Decimal           @db.Decimal(36, 18)
+  maxAmount     Decimal?          @db.Decimal(36, 18)
+  isActive      Boolean           @default(true)
+  positions     StakingPosition[]
+}
+
+model StakingPosition {
+  id        String      @id @default(uuid())
+  userId    String
+  planId    String
+  amount    Decimal     @db.Decimal(36, 18)
+  earned    Decimal     @default(0) @db.Decimal(36, 18)
+  status    String      @default("ACTIVE")
+  startDate DateTime    @default(now())
+  endDate   DateTime?
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      StakingPlan @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+}
+
+model KYCDocument {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String
+  fileUrl    String
+  status     String   @default("PENDING")
+  reviewNote String?
+  reviewedBy String?
+  reviewedAt DateTime?
+  uploadedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model SupportTicket {
+  id        String        @id @default(uuid())
+  userId    String
+  subject   String
+  status    TicketStatus  @default(OPEN)
+  priority  String        @default("MEDIUM")
+  category  String?
+  assignedTo String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String        @id @default(uuid())
+  ticketId  String
+  senderId  String
+  content   String
+  fileUrl   String?
+  isRead    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender    User          @relation(fields: [senderId], references: [id])
+
+  @@index([ticketId])
+}
+
+model AdminLog {
+  id         String   @id @default(uuid())
+  adminId    String
+  action     String
+  targetId   String?
+  targetType String?
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  admin      User     @relation("AdminActor", fields: [adminId], references: [id])
+
+  @@index([adminId])
+}
+
+model LoginSession {
+  id         String   @id @default(uuid())
+  userId     String
+  ipAddress  String?
+  country    String?
+  deviceType String?
+  carrier    String?
+  userAgent  String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WalletConfig {
+  id            String  @id @default(uuid())
+  asset         String
+  network       String
+  address       String
+  qrCodeUrl     String?
+  minDeposit    Decimal @default(0) @db.Decimal(36, 18)
+  maxWithdrawal Decimal @default(0) @db.Decimal(36, 18)
+  isActive      Boolean @default(true)
+  confirmations Int     @default(1)
+
+  @@unique([asset, network])
+}
+
+model SecureVault {
+  id            String   @id @default(uuid())
+  asset         String
+  network       String
+  encryptedData String
+  dataType      String
+  createdAt     DateTime @default(now())
+}

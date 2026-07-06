@@ -1,0 +1,44 @@
+# Render Blueprint — deploys the NestJS backend + PostgreSQL + Redis
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: bce-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install --legacy-peer-deps && npx prisma generate && npm run build
+    startCommand: npx prisma db push --skip-generate && node dist/main
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bce-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: bce-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://YOUR-VERCEL-APP.vercel.app # ← update after Vercel deploy
+      - key: PORT
+        value: 3001
+
+  - type: keyvalue
+    name: bce-redis
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: bce-postgres
+    plan: free
+    databaseName: bridge_capital
+    user: bce
