@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class KycService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   submit(userId: string, dto: { type: string; fileUrl: string }) {
     return this.prisma.$transaction([
@@ -27,6 +31,14 @@ export class KycService {
     }).catch(() => null);
     if (doc) {
       await this.prisma.user.update({ where: { id: doc.userId }, data: { kycStatus: decision } }).catch(() => null);
+      await this.notifications.notify(doc.userId, {
+        title: decision === 'APPROVED' ? 'Identity verification approved ✓' : 'Identity verification rejected',
+        body: decision === 'APPROVED'
+          ? 'Your KYC documents were approved. You now have full access to deposits, withdrawals, and trading.'
+          : `Your KYC submission was rejected${note ? `: ${note}` : ''}. Please upload new, clearly legible documents in Settings → KYC.`,
+        type: 'KYC',
+        email: true,
+      });
     }
     return doc || { id: docId, status: decision };
   }

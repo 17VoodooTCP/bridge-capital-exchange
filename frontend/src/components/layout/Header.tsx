@@ -6,7 +6,17 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from './ThemeToggle';
 import { Badge } from '@/components/ui/badge';
-import { cn, getInitials } from '@/lib/utils';
+import { cn, getInitials, formatDate } from '@/lib/utils';
+import api from '@/lib/api';
+
+interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -35,14 +45,30 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const notifications = [
-    { id: 1, text: 'BTC deposit confirmed (+0.05 BTC)', time: '2m ago', unread: true },
-    { id: 2, text: 'Your ETH staking reward was paid', time: '1h ago', unread: true },
-    { id: 3, text: 'Login from new device detected', time: '3h ago', unread: false },
-    { id: 4, text: 'KYC verification approved', time: '1d ago', unread: false },
-  ];
+  // Real notifications from the backend, refreshed every 60s
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  useEffect(() => {
+    const load = () =>
+      api.get<AppNotification[]>('/notifications')
+        .then((r) => setNotifications(Array.isArray(r.data) ? r.data : []))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const markRead = (id: string) => {
+    setNotifications((list) => list.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    api.patch(`/notifications/${id}/read`).catch(() => {});
+  };
+
+  const markAllRead = () => {
+    setNotifications((list) => list.map((n) => ({ ...n, isRead: true })));
+    api.patch('/notifications/read-all').catch(() => {});
+  };
 
   return (
     <header
@@ -100,33 +126,36 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
             <div className="absolute right-0 top-full mt-2 w-80 bg-[#161B22] border border-[#21262D] rounded-xl shadow-modal z-50 animate-slide-in">
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#21262D]">
                 <span className="text-sm font-semibold text-[#E6EDF3]">Notifications</span>
-                <button className="text-xs text-amber-400 hover:text-amber-300">Mark all read</button>
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} className="text-xs text-amber-400 hover:text-amber-300">Mark all read</button>
+                )}
               </div>
-              <div className="max-h-64 overflow-y-auto">
-                {notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className={cn(
-                      'px-4 py-3 border-b border-[#21262D]/50 cursor-pointer hover:bg-[#1C2128] transition-colors',
-                      n.unread && 'bg-amber-500/5'
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      {n.unread && (
-                        <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-10 text-center text-sm text-[#8B949E]">No notifications yet</div>
+                ) : (
+                  notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      onClick={() => !n.isRead && markRead(n.id)}
+                      className={cn(
+                        'px-4 py-3 border-b border-[#21262D]/50 cursor-pointer hover:bg-[#1C2128] transition-colors',
+                        !n.isRead && 'bg-amber-500/5'
                       )}
-                      <div className={cn(!n.unread && 'pl-5')}>
-                        <p className="text-sm text-[#E6EDF3]">{n.text}</p>
-                        <p className="text-xs text-[#8B949E] mt-0.5">{n.time}</p>
+                    >
+                      <div className="flex items-start gap-3">
+                        {!n.isRead && (
+                          <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                        )}
+                        <div className={cn(n.isRead && 'pl-5', 'min-w-0')}>
+                          <p className="text-sm text-[#E6EDF3] font-medium">{n.title}</p>
+                          <p className="text-xs text-[#8B949E] mt-0.5 line-clamp-2">{n.body}</p>
+                          <p className="text-xs text-[#6E7681] mt-1">{formatDate(n.createdAt, 'relative')}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <div className="px-4 py-2">
-                <button className="w-full text-xs text-center text-[#8B949E] hover:text-amber-400 transition-colors py-1">
-                  View all notifications
-                </button>
+                  ))
+                )}
               </div>
             </div>
           )}

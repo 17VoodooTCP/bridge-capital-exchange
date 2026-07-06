@@ -11,6 +11,7 @@ import { EarnModule } from './modules/earn/earn.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { SupportModule } from './modules/support/support.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AdminModule } from './modules/admin/admin.module';
     KycModule,
     SupportModule,
     AdminModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
 })

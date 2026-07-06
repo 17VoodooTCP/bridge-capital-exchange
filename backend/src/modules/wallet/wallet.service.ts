@@ -1,16 +1,20 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class WalletService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async getBalances(userId: string) {
     return this.prisma.wallet.findMany({ where: { userId } }).catch(() => []);
   }
 
   async deposit(userId: string, dto: { asset: string; amount: number; network?: string; txHash?: string }) {
-    return this.prisma.transaction.create({
+    const tx = await this.prisma.transaction.create({
       data: {
         userId,
         type: 'DEPOSIT',
@@ -21,14 +25,21 @@ export class WalletService {
         status: 'PENDING',
         usdValue: dto.amount,
       },
-    }).catch(() => ({ id: `tx-${Date.now()}`, ...dto, status: 'PENDING' }));
+    });
+    await this.notifications.notify(userId, {
+      title: 'Deposit received — pending confirmation',
+      body: `Your deposit of ${dto.amount} ${dto.asset}${dto.network ? ` via ${dto.network}` : ''} has been detected and is awaiting network confirmation. Funds will be credited automatically.`,
+      type: 'TRANSACTION',
+      email: true,
+    });
+    return tx;
   }
 
   async withdraw(userId: string, dto: { asset: string; amount: number; toAddress: string; network: string }) {
     if (!dto.toAddress) throw new BadRequestException('Recipient address required');
     if (dto.amount <= 0) throw new BadRequestException('Amount must be positive');
 
-    return this.prisma.transaction.create({
+    const tx = await this.prisma.transaction.create({
       data: {
         userId,
         type: 'WITHDRAWAL',
@@ -40,7 +51,14 @@ export class WalletService {
         fee: dto.amount * 0.001,
         usdValue: dto.amount,
       },
-    }).catch(() => ({ id: `tx-${Date.now()}`, ...dto, status: 'PENDING' }));
+    });
+    await this.notifications.notify(userId, {
+      title: 'Withdrawal request submitted',
+      body: `Your withdrawal of ${dto.amount} ${dto.asset} to ${dto.toAddress.slice(0, 10)}…${dto.toAddress.slice(-6)} (${dto.network}) is being reviewed. You'll be notified once it's processed.`,
+      type: 'TRANSACTION',
+      email: true,
+    });
+    return tx;
   }
 
   async transfer(userId: string, dto: { asset: string; amount: number; toUserId: string }) {

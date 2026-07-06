@@ -1,9 +1,13 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async stats() {
     const [users, tx, tickets] = await Promise.all([
@@ -42,6 +46,13 @@ export class AdminService {
       }).catch(() => null),
     ]);
 
+    await this.notifications.notify(dto.userId, {
+      title: dto.type === 'ADD' ? 'Funds credited to your account' : 'Funds deducted from your account',
+      body: `${dto.type === 'ADD' ? '+' : '-'}${dto.amount} ${dto.asset} was ${dto.type === 'ADD' ? 'credited to' : 'deducted from'} your wallet by platform administration. Reason: ${dto.reason}`,
+      type: 'TRANSACTION',
+      email: true,
+    });
+
     return { success: true, wallet };
   }
 
@@ -56,6 +67,15 @@ export class AdminService {
     await this.prisma.adminLog.create({
       data: { adminId, action: updated.isHeld ? 'HOLD_ACCOUNT' : 'RELEASE_HOLD', targetId: userId, targetType: 'USER', details: { reason }, ipAddress },
     }).catch(() => null);
+
+    await this.notifications.notify(userId, {
+      title: updated.isHeld ? 'Your account has been placed on hold' : 'Your account hold has been released',
+      body: updated.isHeld
+        ? `Your account was temporarily restricted${reason ? ` (${reason})` : ''}. Please contact support for assistance.`
+        : 'Full access to your account has been restored. Thank you for your patience.',
+      type: 'ACCOUNT',
+      email: true,
+    });
 
     return updated;
   }
@@ -102,6 +122,18 @@ export class AdminService {
     await this.prisma.adminLog.create({
       data: { adminId, action: approve ? 'TX_APPROVED' : 'TX_REJECTED', targetId: txId, targetType: 'TRANSACTION', ipAddress },
     }).catch(() => null);
+
+    const fullTx = tx as { userId?: string; type?: string; amount?: unknown; asset?: string };
+    if (fullTx.userId) {
+      await this.notifications.notify(fullTx.userId, {
+        title: approve ? 'Transaction approved ✓' : 'Transaction rejected',
+        body: approve
+          ? `Your ${String(fullTx.type || 'transaction').toLowerCase()} of ${fullTx.amount} ${fullTx.asset} has been approved and completed.`
+          : `Your ${String(fullTx.type || 'transaction').toLowerCase()} of ${fullTx.amount} ${fullTx.asset} was rejected. Contact support if you believe this is an error.`,
+        type: 'TRANSACTION',
+        email: true,
+      });
+    }
 
     return tx;
   }

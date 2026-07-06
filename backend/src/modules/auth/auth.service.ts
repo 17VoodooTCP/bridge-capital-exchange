@@ -2,12 +2,17 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService, private readonly jwt: JwtService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async register(dto: RegisterDto, meta?: { ip?: string; userAgent?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } }).catch(() => null);
@@ -18,6 +23,12 @@ export class AuthService {
       data: { name: dto.name, email: dto.email, passwordHash, country: dto.country },
     });
     await this.recordSession(user.id, meta);
+    await this.notifications.notify(user.id, {
+      title: 'Welcome to Bridge Capital Exchange 🎉',
+      body: 'Your account has been created successfully. Complete KYC verification in Settings to unlock deposits, withdrawals, and full trading limits.',
+      type: 'ACCOUNT',
+      email: true,
+    });
     return this.issueTokens(user);
   }
 
@@ -44,14 +55,30 @@ export class AuthService {
     const ua = meta?.userAgent || '';
     const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
     const os = /Windows/.test(ua) ? 'Windows' : /Mac OS X|Macintosh/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad|iOS/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : 'Unknown OS';
+    const deviceType = `${browser} on ${os}`;
+
+    // Security alert when this device has never been seen on the account
+    const known = await this.prisma.loginSession
+      .findFirst({ where: { userId, deviceType } })
+      .catch(() => null);
+
     await this.prisma.loginSession.create({
       data: {
         userId,
         ipAddress: meta?.ip || null,
-        deviceType: `${browser} on ${os}`,
+        deviceType,
         userAgent: ua || null,
       },
     }).catch(() => null);
+
+    if (!known) {
+      await this.notifications.notify(userId, {
+        title: 'Login from a new device',
+        body: `A sign-in to your account was detected from ${deviceType}${meta?.ip ? ` (IP ${meta.ip})` : ''}. If this wasn't you, change your password immediately and contact support.`,
+        type: 'SECURITY',
+        email: true,
+      });
+    }
   }
 
   async logout(userId: string) {
