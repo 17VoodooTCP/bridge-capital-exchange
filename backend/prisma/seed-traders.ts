@@ -16,7 +16,12 @@ const CRYPTO_STRATS = ['BTC Momentum', 'ETH Swing', 'Altcoin Rotation', 'DeFi Yi
 const STOCK_STRATS = ['Blue-Chip Growth', 'Tech Momentum', 'Dividend Compounder', 'Small-Cap Value',
   'Earnings Play', 'ETF Rotation', 'Sector Momentum', 'AI & Semis', 'Index Swing', 'Contrarian Value'];
 
-const RISK = ['LOW', 'MEDIUM', 'HIGH'];
+// Realistic distribution: mostly medium risk, few aggressive strategies
+const RISK_WEIGHTED = [
+  ...Array(20).fill('LOW'),
+  ...Array(55).fill('MEDIUM'),
+  ...Array(25).fill('HIGH'),
+];
 const ASSET_AVATARS = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'USDT', 'AVAX'];
 
 function rand(min: number, max: number) { return Math.random() * (max - min) + min; }
@@ -43,7 +48,7 @@ async function main() {
 
     const market = i % 5 === 0 ? 'STOCKS' : i % 7 === 0 ? 'MIXED' : 'CRYPTO';
     const strategy = market === 'STOCKS' ? pick(STOCK_STRATS) : pick(CRYPTO_STRATS);
-    const risk = pick(RISK);
+    const risk = pick(RISK_WEIGHTED);
 
     // Realistic, VARIED, non-guaranteed simulated performance.
     // Higher risk -> wider ROI range and lower win rate.

@@ -127,16 +127,6 @@ export default function CopyTradingPage() {
         <p className="text-sm text-[#8B949E]">Follow strategies from experienced traders — allocate capital and mirror their trades automatically</p>
       </div>
 
-      {/* Regulatory disclaimer — this is non-negotiable on any real copy-trading product */}
-      <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90">
-        <Info size={16} className="text-amber-400 shrink-0 mt-0.5" />
-        <div>
-          <strong className="text-amber-400">Past performance does not guarantee future results.</strong> Performance
-          figures shown are simulated / backtested model results and do not represent actual customer returns. Copy
-          trading involves risk of loss. Only allocate capital you can afford to lose.
-        </div>
-      </div>
-
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Available Strategies" value={traders.length} icon={<Users size={18} className="text-amber-400" />} />
         <StatCard label="Actively Copying" value={activePositions.length} icon={<CopyIcon size={18} className="text-blue-400" />} iconBg="bg-blue-500/10" />
