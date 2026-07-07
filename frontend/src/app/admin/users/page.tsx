@@ -36,7 +36,12 @@ export default function AdminUsersPage() {
     try {
       const res = await api.get('/admin/users', { params: q ? { q } : undefined });
       const list = Array.isArray(res.data) ? res.data : [];
-      setUsers(list.map((u: Record<string, unknown>) => ({ ...u, totalBalance: 0, country: u.country || '—' })) as AdminUser[]);
+      setUsers(list.map((u: Record<string, unknown>) => ({
+        ...u,
+        totalBalance: Number(u.totalBalanceUsd) || 0,
+        wallets: (u.wallets as unknown[]) || [],
+        country: u.country || '—',
+      })) as AdminUser[]);
     } catch {
       toast.error('Could not load users.');
     } finally {
@@ -100,7 +105,7 @@ export default function AdminUsersPage() {
         )}
       </Card>
 
-      <FundAdjustmentModal isOpen={fundModal.open} onClose={() => setFundModal({ open: false })} userName={fundModal.user?.name} userId={fundModal.user?.id} currentBalance={fundModal.user?.totalBalance} />
+      <FundAdjustmentModal isOpen={fundModal.open} onClose={() => setFundModal({ open: false })} userName={fundModal.user?.name} userId={fundModal.user?.id} currentBalance={fundModal.user?.totalBalance} wallets={(fundModal.user?.wallets as { asset: string; balance: string | number; lockedBalance: string | number }[]) || []} />
 
       <Modal isOpen={createModal} onClose={() => setCreateModal(false)} title="Create User Account" size="md">
         <div className="p-6 space-y-4">

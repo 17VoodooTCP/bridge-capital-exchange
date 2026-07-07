@@ -10,12 +10,82 @@ export class AdminService {
   ) {}
 
   async stats() {
-    const [users, tx, tickets] = await Promise.all([
-      this.prisma.user.count().catch(() => 2418),
-      this.prisma.transaction.count().catch(() => 84210),
-      this.prisma.supportTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }).catch(() => 12),
+    const dayAgo = new Date(Date.now() - 86400000);
+    const weekAgo = new Date(Date.now() - 7 * 86400000);
+
+    const [users, newUsersWeek, tx24h, tickets, pendingKyc, deposits24h, activeStakes, recentUsers, recentTx] = await Promise.all([
+      this.prisma.user.count().catch(() => 0),
+      this.prisma.user.count({ where: { createdAt: { gte: weekAgo } } }).catch(() => 0),
+      this.prisma.transaction.aggregate({
+        _sum: { usdValue: true },
+        where: { createdAt: { gte: dayAgo }, status: 'COMPLETED' },
+      }).catch(() => ({ _sum: { usdValue: 0 } })),
+      this.prisma.supportTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }).catch(() => 0),
+      this.prisma.kYCDocument.count({ where: { status: 'PENDING' } }).catch(() => 0),
+      this.prisma.transaction.aggregate({
+        _sum: { usdValue: true },
+        where: { createdAt: { gte: dayAgo }, type: 'DEPOSIT', status: 'COMPLETED' },
+      }).catch(() => ({ _sum: { usdValue: 0 } })),
+      this.prisma.stakingPosition.count({ where: { status: 'ACTIVE' } }).catch(() => 0),
+      this.prisma.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, name: true, email: true, kycStatus: true, createdAt: true },
+      }).catch(() => []),
+      this.prisma.transaction.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, userId: true, type: true, asset: true, amount: true, usdValue: true, status: true, createdAt: true },
+      }).catch(() => []),
     ]);
-    return { totalUsers: users, totalTransactions: tx, openTickets: tickets, uptime: '99.99%' };
+
+    return {
+      totalUsers: users,
+      newUsersThisWeek: newUsersWeek,
+      volume24h: Number((tx24h as { _sum: { usdValue: unknown } })._sum.usdValue) || 0,
+      pendingKyc,
+      openTickets: tickets,
+      deposits24h: Number((deposits24h as { _sum: { usdValue: unknown } })._sum.usdValue) || 0,
+      activeStakes,
+      recentUsers,
+      recentTransactions: recentTx,
+    };
+  }
+
+  /**
+   * Sum of a user's wallet balances converted to USD.
+   * Stablecoins are 1:1; anything else needs a price feed, which we don't have server-side yet,
+   * so those are reported at their raw balance amount — client can multiply by market price if needed.
+   */
+  async getUserBalanceUsd(userId: string) {
+    try {
+      const wallets = await this.prisma.wallet.findMany({ where: { userId } });
+      return wallets.reduce((sum, w) => {
+        const total = Number(w.balance) + Number(w.lockedBalance);
+        if (w.asset === 'USDT' || w.asset === 'USDC') return sum + total;
+        return sum;
+      }, 0);
+    } catch {
+      return 0;
+    }
+  }
+
+  async listUsersWithBalances(query?: string, page = 1, pageSize = 50) {
+    const users = await this.listUsers(query, page, pageSize);
+    const enriched = await Promise.all(
+      users.map(async (u) => {
+        let wallets: { asset: string; balance: unknown; lockedBalance: unknown }[] = [];
+        try {
+          wallets = await this.prisma.wallet.findMany({ where: { userId: u.id } });
+        } catch { /* keep empty */ }
+        return {
+          ...u,
+          totalBalanceUsd: await this.getUserBalanceUsd(u.id),
+          wallets,
+        };
+      }),
+    );
+    return enriched;
   }
 
   listUsers(query?: string, page = 1, pageSize = 50) {

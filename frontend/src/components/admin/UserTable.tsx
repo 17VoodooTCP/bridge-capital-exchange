@@ -44,7 +44,26 @@ export function UserTable({ users, onAdjust, onToggleHold, onView }: Props) {
     },
     { key: 'country', header: 'Country', sortable: true, render: (v) => <span className="text-[#8B949E]">{String(v)}</span> },
     { key: 'kycStatus', header: 'KYC', sortable: true, render: (v) => <Badge variant={kycVariant(String(v))}>{KYC_STATUS_LABELS[v as keyof typeof KYC_STATUS_LABELS]}</Badge> },
-    { key: 'totalBalance', header: 'Balance', sortable: true, align: 'right', render: (v) => <span className="font-medium">{formatCurrency(Number(v))}</span> },
+    {
+      key: 'totalBalance', header: 'Balance', sortable: true, align: 'right',
+      render: (v, u) => {
+        const wallets = (u.wallets as { asset: string; balance: string | number }[] | undefined) || [];
+        const nonZero = wallets.filter((w) => Number(w.balance) > 0);
+        return (
+          <div className="text-right">
+            <div className="font-medium">{formatCurrency(Number(v))}</div>
+            {nonZero.length > 0 ? (
+              <div className="text-xs text-[#8B949E] font-mono">
+                {nonZero.slice(0, 3).map((w) => `${Number(w.balance).toFixed(4)} ${w.asset}`).join(' · ')}
+                {nonZero.length > 3 && ` +${nonZero.length - 3}`}
+              </div>
+            ) : (
+              <div className="text-xs text-[#6E7681]">no balances</div>
+            )}
+          </div>
+        );
+      },
+    },
     { key: 'isHeld', header: 'Status', align: 'center', render: (v) => v ? <Badge variant="danger" dot>On Hold</Badge> : <Badge variant="success" dot>Active</Badge> },
     {
       key: 'actions', header: 'Actions', align: 'right',

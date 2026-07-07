@@ -9,15 +9,22 @@ import { cn, formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 
+interface WalletRow {
+  asset: string;
+  balance: string | number;
+  lockedBalance: string | number;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   userName?: string;
   userId?: string;
   currentBalance?: number;
+  wallets?: WalletRow[];
 }
 
-export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', userId, currentBalance = 0 }: Props) {
+export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', userId, currentBalance = 0, wallets = [] }: Props) {
   const [type, setType] = useState<'ADD' | 'DEDUCT'>('ADD');
   const [asset, setAsset] = useState('USDT');
   const [amount, setAmount] = useState('');
@@ -51,9 +58,38 @@ export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', userId
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Adjust Funds — ${userName}`} size="md">
       <div className="p-6 space-y-5">
-        <div className="rounded-lg bg-[#111318] border border-[#21262D] p-3 flex justify-between text-sm">
-          <span className="text-[#8B949E]">Current Balance</span>
-          <span className="font-semibold">{formatCurrency(currentBalance)}</span>
+        <div className="rounded-lg bg-[#111318] border border-[#21262D] p-3 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-[#8B949E]">Total (stablecoins)</span>
+            <span className="font-semibold">{formatCurrency(currentBalance)}</span>
+          </div>
+          {wallets.length > 0 && (
+            <div className="pt-2 border-t border-[#21262D] space-y-1">
+              <div className="text-xs text-[#8B949E] mb-1">All wallet balances</div>
+              {wallets.filter((w) => Number(w.balance) > 0 || Number(w.lockedBalance) > 0).map((w) => (
+                <div key={w.asset} className="flex justify-between text-xs">
+                  <span className="text-[#8B949E]">{w.asset}</span>
+                  <span className="font-mono">
+                    {Number(w.balance).toFixed(6)}
+                    {Number(w.lockedBalance) > 0 && <span className="text-[#6E7681]"> (+{Number(w.lockedBalance).toFixed(6)} locked)</span>}
+                  </span>
+                </div>
+              ))}
+              {wallets.every((w) => Number(w.balance) === 0 && Number(w.lockedBalance) === 0) && (
+                <div className="text-xs text-[#6E7681]">No balances yet.</div>
+              )}
+            </div>
+          )}
+          {asset && (() => {
+            const selected = wallets.find((w) => w.asset.toUpperCase() === asset.toUpperCase());
+            const bal = selected ? Number(selected.balance) : 0;
+            return (
+              <div className="pt-2 border-t border-[#21262D] flex justify-between text-sm">
+                <span className="text-[#8B949E]">Current {asset} balance</span>
+                <span className="font-semibold text-amber-400">{bal.toFixed(6)} {asset}</span>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="grid grid-cols-2 gap-3">

@@ -21,7 +21,7 @@ export class AdminController {
 
   @Get('users')
   users(@Query('q') q?: string, @Query('page') page?: string) {
-    return this.admin.listUsers(q, page ? parseInt(page, 10) : 1);
+    return this.admin.listUsersWithBalances(q, page ? parseInt(page, 10) : 1);
   }
 
   @Post('users')
