@@ -9,17 +9,19 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, hasHydrated } = useAuthStore();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // Wait for zustand to finish reading localStorage before judging auth.
+    if (!hasHydrated) return;
     const isAdmin = isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN');
     if (!isAdmin) {
       router.replace('/admin-login');
       return;
     }
     setReady(true);
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, hasHydrated, router]);
 
   if (!ready) return <div className="min-h-screen flex items-center justify-center bg-[#0A0B0D]"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /></div>;
 

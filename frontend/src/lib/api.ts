@@ -51,18 +51,58 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — handle 401
+// A single in-flight refresh promise shared across concurrent 401s.
+let refreshInflight: Promise<string | null> | null = null;
+
+const doRefresh = async (): Promise<string | null> => {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem('auth-storage');
+  if (!raw) return null;
+  try {
+    const state = JSON.parse(raw);
+    const refreshToken = state?.state?.refreshToken;
+    const userId = state?.state?.user?.id;
+    if (!refreshToken || !userId) return null;
+
+    const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { userId, refreshToken });
+    const newAccess: string | undefined = res.data?.accessToken;
+    const newRefresh: string | undefined = res.data?.refreshToken;
+    if (!newAccess) return null;
+    state.state.token = newAccess;
+    if (newRefresh) state.state.refreshToken = newRefresh;
+    localStorage.setItem('auth-storage', JSON.stringify(state));
+    return newAccess;
+  } catch {
+    return null;
+  }
+};
+
+// Response interceptor — attempt refresh before signing the user out on 401
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const original = error.config;
+    const status = error.response?.status;
+    const path: string = original?.url || '';
+
+    if (status === 401 && !path.includes('/auth/') && !original?._retried) {
+      original._retried = true;
+      if (!refreshInflight) refreshInflight = doRefresh().finally(() => { refreshInflight = null; });
+      const newToken = await refreshInflight;
+      if (newToken) {
+        original.headers = { ...(original.headers || {}), Authorization: `Bearer ${newToken}` };
+        return api(original);
+      }
+      // Refresh failed — the session is genuinely gone. Clear and redirect
+      // to the appropriate login page (admin area vs. user area).
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth-storage');
-        window.location.href = '/login';
+        const isAdminArea = window.location.pathname.startsWith('/admin');
+        window.location.href = isAdminArea ? '/admin-login' : '/login';
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────

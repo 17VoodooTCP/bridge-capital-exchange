@@ -8,17 +8,21 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, hasHydrated } = useAuthStore();
   const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
+    // Wait for zustand to finish reading localStorage before judging auth.
+    // Without this, refreshing a page kicks the user to /login before the
+    // stored token has been hydrated back into the store.
+    if (!hasHydrated) return;
     if (!isAuthenticated) {
       router.replace('/login');
       return;
     }
     setReady(true);
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, hasHydrated, router]);
 
   if (!ready) {
     return (
