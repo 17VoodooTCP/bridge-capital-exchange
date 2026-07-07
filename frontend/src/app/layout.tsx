@@ -23,7 +23,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" className="light" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans bg-[#0A0B0D] text-[#E6EDF3] antialiased`}>
         <ThemeProvider>{children}</ThemeProvider>
         <Toaster

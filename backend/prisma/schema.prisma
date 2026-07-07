@@ -98,6 +98,7 @@ model User {
   sessions      LoginSession[]
   adminLogs     AdminLog[]        @relation("AdminActor")
   notifications Notification[]
+  copyPositions CopyPosition[]
 }
 
 model Wallet {
@@ -267,6 +268,44 @@ model WalletConfig {
   confirmations Int     @default(1)
 
   @@unique([asset, network])
+}
+
+model Trader {
+  id            String   @id @default(uuid())
+  name          String
+  handle        String   @unique
+  avatarType    String   @default("INITIALS") // INITIALS | ASSET | PHOTO
+  avatarValue   String?  // asset symbol, or an abstract avatar seed
+  market        String   @default("CRYPTO")   // CRYPTO | STOCKS | MIXED
+  strategy      String
+  // Performance figures are SIMULATED/backtested model results, not guarantees
+  wins          Int      @default(0)
+  losses        Int      @default(0)
+  winRate       Float    @default(0)
+  roi30d        Float    @default(0)  // simulated 30-day ROI %
+  profitSharePct Float   @default(10)
+  aum           Float    @default(0)  // assets copying this strategy
+  copiers       Int      @default(0)
+  riskLevel     String   @default("MEDIUM") // LOW | MEDIUM | HIGH
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  positions CopyPosition[]
+}
+
+model CopyPosition {
+  id          String   @id @default(uuid())
+  userId      String
+  traderId    String
+  allocation  Float    @default(0) // amount (USDT) allocated to copy
+  status      String   @default("ACTIVE") // ACTIVE | STOPPED
+  pnl         Float    @default(0)
+  startedAt   DateTime @default(now())
+  stoppedAt   DateTime?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trader      Trader   @relation(fields: [traderId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
 }
 
 model Notification {

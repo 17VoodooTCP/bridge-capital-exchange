@@ -12,6 +12,7 @@ import { KycModule } from './modules/kyc/kyc.module';
 import { SupportModule } from './modules/support/support.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CopyTradingModule } from './modules/copytrading/copytrading.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     SupportModule,
     AdminModule,
     NotificationsModule,
+    CopyTradingModule,
   ],
   controllers: [AppController],
 })
