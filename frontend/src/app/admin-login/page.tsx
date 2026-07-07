@@ -21,17 +21,25 @@ export default function AdminLoginPage() {
     e.preventDefault();
     if (!email || !password) return toast.error('Enter your admin credentials');
     setLoading(true);
+    toast.loading('Signing in…', { id: 'admin-login' });
     try {
       const data = await authApi.login({ email, password, twoFactorCode: twoFA || undefined });
       if (data.user.role !== 'ADMIN' && data.user.role !== 'SUPER_ADMIN') {
-        toast.error('This account does not have admin privileges.');
+        toast.error('This account does not have admin privileges.', { id: 'admin-login' });
         return;
       }
       setAuth(data.user, data.accessToken, data.refreshToken);
-      toast.success(`Welcome, ${data.user.name}`);
+      toast.success(`Welcome, ${data.user.name}`, { id: 'admin-login' });
       router.push('/admin');
-    } catch {
-      toast.error('Access denied. Check your credentials.');
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const code = (err as { code?: string })?.code;
+      const msg =
+        status === 401 ? 'Invalid email or password.' :
+        status === 429 ? 'Too many attempts. Try again in a minute.' :
+        code === 'ECONNABORTED' ? 'Server is waking up (free tier can take 30–50s). Try again.' :
+        'Could not reach the server. Check your connection and retry.';
+      toast.error(msg, { id: 'admin-login' });
     } finally {
       setLoading(false);
     }
