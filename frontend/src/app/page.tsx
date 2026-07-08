@@ -81,12 +81,13 @@ export default function LandingPage() {
         .flip-back { transform: rotateY(180deg); }
         .btc-avatar { animation: bobble 2.4s ease-in-out infinite; }
         .logo-spin { animation: slowSpin 8s linear infinite; display: flex; }
-        .pay-card { animation: cardFloat 6s ease-in-out infinite; }
-        .pay-card .shine {
+        .shine {
           content: ''; position: absolute; top: 0; bottom: 0; width: 40%;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
           animation: shineSweep 4.5s ease-in-out infinite;
         }
+        .card-swipe { scrollbar-width: none; -ms-overflow-style: none; scroll-behavior: smooth; }
+        .card-swipe::-webkit-scrollbar { display: none; }
         .globe-ring { animation: slowSpin 24s linear infinite; }
         @keyframes screenIn { from { opacity: 0; transform: translateX(24px);} to { opacity: 1; transform: translateX(0);} }
         .screen-in { animation: screenIn 0.45s ease-out; }
@@ -142,10 +143,6 @@ export default function LandingPage() {
               <Link href="/markets" className="text-sm text-[#8B949E] hover:text-amber-400 transition-colors">
                 Explore markets first →
               </Link>
-            </div>
-            <div className="flex items-center gap-4 mt-8 text-xs text-[#8B949E]">
-              <span className="flex items-center gap-1.5"><Shield size={13} /> Insured custody</span>
-              <span className="flex items-center gap-1.5"><QrCode size={13} /> Download App</span>
             </div>
           </div>
 
@@ -249,23 +246,24 @@ export default function LandingPage() {
       {/* ─── Cards / Pay ─── */}
       <section className="bg-[#F5F6F8] text-[#111318] py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 text-center">
-          <div className="flex justify-center items-end gap-6 mb-14 h-56">
+          <div className="card-swipe flex gap-5 overflow-x-auto pb-6 mb-8 px-[calc(50%-7rem)] snap-x snap-mandatory">
             {[
-              { bg: 'bg-gradient-to-br from-gray-100 to-gray-300 text-[#111]', tilt: '-8deg', delay: '0s' },
-              { bg: 'bg-gradient-to-br from-[#111318] to-[#2A2F36] text-white scale-110', tilt: '0deg', delay: '0.6s' },
-              { bg: 'bg-gradient-to-br from-amber-400 to-orange-500 text-black', tilt: '8deg', delay: '1.2s' },
+              { bg: 'bg-gradient-to-br from-gray-100 to-gray-300 text-[#111]', name: 'Silver', last: '4821' },
+              { bg: 'bg-gradient-to-br from-[#111318] to-[#2A2F36] text-white', name: 'Obsidian', last: '7390' },
+              { bg: 'bg-gradient-to-br from-amber-400 to-orange-500 text-black', name: 'Gold', last: '1024' },
+              { bg: 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white', name: 'Prime', last: '5567' },
             ].map((c, i) => (
               <div
                 key={i}
-                className={cn('pay-card relative w-56 h-36 rounded-2xl shadow-2xl p-4 text-left overflow-hidden shrink-0', c.bg)}
-                style={{ ['--tilt' as string]: c.tilt, animationDelay: c.delay }}
+                className={cn('relative w-56 h-36 rounded-2xl shadow-2xl p-4 text-left overflow-hidden shrink-0 snap-center', c.bg)}
               >
                 <span className="shine" />
                 <div className="flex items-center gap-2">
                   <Logo size={26} />
                   <span className="text-xs font-bold tracking-wider">BRIDGE CAPITAL</span>
                 </div>
-                <div className="absolute bottom-4 left-4 text-xs font-mono opacity-70">•••• 4821</div>
+                <div className="absolute top-4 right-4 text-[10px] font-semibold uppercase opacity-60">{c.name}</div>
+                <div className="absolute bottom-4 left-4 text-xs font-mono opacity-70">•••• {c.last}</div>
                 <div className="absolute bottom-4 right-4 flex -space-x-2">
                   <div className="w-6 h-6 rounded-full bg-red-500/80" />
                   <div className="w-6 h-6 rounded-full bg-amber-400/80" />
@@ -273,6 +271,7 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+          <p className="text-xs text-[#8B949E] mb-8 flex items-center justify-center gap-1.5"><span className="hidden sm:inline">←</span> Swipe to explore all cards <span className="hidden sm:inline">→</span></p>
           <h2 className="text-2xl lg:text-4xl font-bold mb-6">Live crypto. Pay anywhere. Get 10% back.</h2>
           <Button onClick={() => router.push('/register')}>Get My Card</Button>
           <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mt-14">
@@ -413,17 +412,33 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          {/* QR + stores */}
-          <div className={cn(glass, 'p-10 text-center')}>
-            <h3 className="text-xl lg:text-2xl font-bold mb-2">All-in-one mobile experience for everyone</h3>
-            <p className="text-sm text-[#8B949E] mb-8">Scan to get the Bridge Capital App</p>
-            <div className="w-40 h-40 bg-white rounded-2xl mx-auto flex items-center justify-center mb-8">
-              <QrCode size={110} className="text-black" />
+          {/* Live market tiles */}
+          <div className={cn(glass, 'p-8')}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-xl lg:text-2xl font-bold">Markets, in real time</h3>
+              <span className="flex items-center gap-1.5 text-xs text-green-400"><span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> Live</span>
             </div>
-            <div className="flex justify-center gap-3">
-              <button className={cn(glass, 'px-4 py-2.5 flex items-center gap-2 text-sm hover:border-amber-500/40 transition-colors')}><Play size={15} /> Google Play</button>
-              <button className={cn(glass, 'px-4 py-2.5 flex items-center gap-2 text-sm hover:border-amber-500/40 transition-colors')}><Apple size={15} /> App Store</button>
+            <p className="text-sm text-[#8B949E] mb-6">Prices update every few seconds, straight from the exchange.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {cryptos.slice(0, 6).map((a, i) => (
+                <div
+                  key={a.id}
+                  className={cn(glass, 'p-4 flex flex-col gap-2 transition-transform hover:scale-[1.03]')}
+                  style={{ animation: `cardFloat 6s ease-in-out ${i * 0.4}s infinite` }}
+                >
+                  <div className="flex items-center gap-2">
+                    <AssetIcon symbol={a.symbol} fallback={a.icon} size={26} />
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold leading-tight">{a.symbol}</div>
+                      <div className="text-[10px] text-[#8B949E] truncate">{a.name}</div>
+                    </div>
+                  </div>
+                  <div className="text-lg font-bold font-mono tabular-nums">{formatCurrency(a.price)}</div>
+                  <div className={cn('text-xs font-medium', getChangeColor(a.changePercent24h))}>{formatPercent(a.changePercent24h)} 24h</div>
+                </div>
+              ))}
             </div>
+            <Link href="/markets"><Button variant="outline" fullWidth className="mt-6" rightIcon={<ArrowRight size={15} />}>View all markets</Button></Link>
           </div>
         </div>
       </section>
