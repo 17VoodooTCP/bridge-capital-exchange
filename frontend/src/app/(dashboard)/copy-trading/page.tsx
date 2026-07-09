@@ -16,7 +16,7 @@ interface Trader {
   id: string;
   name: string;
   handle: string;
-  avatarType: 'INITIALS' | 'ASSET';
+  avatarType: 'INITIALS' | 'ASSET' | 'PHOTO';
   avatarValue?: string;
   market: 'CRYPTO' | 'STOCKS' | 'MIXED';
   strategy: string;
@@ -41,6 +41,9 @@ interface CopyPosition {
 }
 
 function TraderAvatar({ trader, size = 56 }: { trader: Trader; size?: number }) {
+  if (trader.avatarType === 'PHOTO' && trader.avatarValue) {
+    return <img src={trader.avatarValue} alt={trader.name} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />;
+  }
   if (trader.avatarType === 'ASSET' && trader.avatarValue) {
     return <AssetIcon symbol={trader.avatarValue} size={size} />;
   }

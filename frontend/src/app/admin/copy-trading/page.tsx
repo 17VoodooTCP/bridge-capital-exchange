@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { RefreshCw, Plus, Pencil, Trash2, Search, Upload } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ interface Trader {
   id: string;
   name: string;
   handle: string;
-  avatarType: 'INITIALS' | 'ASSET';
+  avatarType: 'INITIALS' | 'ASSET' | 'PHOTO';
   avatarValue?: string | null;
   market: string;
   strategy: string;
@@ -39,6 +39,9 @@ const emptyTrader: Partial<Trader> = {
 };
 
 function Avatar({ t, size = 40 }: { t: Partial<Trader>; size?: number }) {
+  if (t.avatarType === 'PHOTO' && t.avatarValue) {
+    return <img src={t.avatarValue} alt={t.name || ''} className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />;
+  }
   if (t.avatarType === 'ASSET' && t.avatarValue) return <AssetIcon symbol={t.avatarValue} size={size} />;
   return (
     <div className="rounded-full flex items-center justify-center font-bold text-black shrink-0"
@@ -48,12 +51,54 @@ function Avatar({ t, size = 40 }: { t: Partial<Trader>; size?: number }) {
   );
 }
 
+/** Reads an image file and downsizes it to a small square JPEG data URL. */
+function fileToAvatar(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const SIZE = 160;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('no canvas'));
+        // center-crop to square
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function AdminCopyTradingPage() {
   const [traders, setTraders] = useState<Trader[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<Partial<Trader> | null>(null);
   const [saving, setSaving] = useState(false);
+  const photoRef = useRef<HTMLInputElement>(null);
+
+  const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { toast.error('Image too large (max 8MB)'); return; }
+    try {
+      const dataUrl = await fileToAvatar(file);
+      setEditing((ed) => (ed ? { ...ed, avatarType: 'PHOTO', avatarValue: dataUrl } : ed));
+      toast.success('Photo uploaded');
+    } catch {
+      toast.error('Could not process image');
+    }
+    e.target.value = '';
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -185,12 +230,14 @@ export default function AdminCopyTradingPage() {
             </div>
 
             {/* Avatar controls */}
+            <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={onPhoto} />
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-[#8B949E]">Avatar Type</label>
-                <select value={editing.avatarType} onChange={(e) => set('avatarType', e.target.value)} className="bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2.5 text-sm outline-none">
+                <select value={editing.avatarType} onChange={(e) => { const v = e.target.value; set('avatarType', v); if (v !== 'ASSET' && editing.avatarType === 'ASSET') set('avatarValue', null); }} className="bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2.5 text-sm outline-none">
                   <option value="INITIALS">Initials</option>
                   <option value="ASSET">Crypto logo</option>
+                  <option value="PHOTO">Uploaded photo</option>
                 </select>
               </div>
               {editing.avatarType === 'ASSET' && (
@@ -199,6 +246,14 @@ export default function AdminCopyTradingPage() {
                   <select value={editing.avatarValue || 'BTC'} onChange={(e) => set('avatarValue', e.target.value)} className="bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2.5 text-sm outline-none">
                     {AVATAR_ASSETS.map((a) => <option key={a} value={a}>{a}</option>)}
                   </select>
+                </div>
+              )}
+              {editing.avatarType === 'PHOTO' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-[#8B949E]">Photo</label>
+                  <Button type="button" variant="outline" leftIcon={<Upload size={14} />} onClick={() => photoRef.current?.click()}>
+                    {editing.avatarValue ? 'Replace Photo' : 'Upload Photo'}
+                  </Button>
                 </div>
               )}
             </div>
