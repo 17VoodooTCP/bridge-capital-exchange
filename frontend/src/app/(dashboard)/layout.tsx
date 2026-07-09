@@ -4,27 +4,43 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { MobileNav } from '@/components/layout/MobileNav';
+import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
+import { API_BASE_URL } from '@/lib/constants';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated, hasHydrated } = useAuthStore();
+  const { isAuthenticated, hasHydrated, logout, token } = useAuthStore();
   const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     // Wait for zustand to finish reading localStorage before judging auth.
-    // Without this, refreshing a page kicks the user to /login before the
-    // stored token has been hydrated back into the store.
     if (!hasHydrated) return;
     if (!isAuthenticated) {
-      // Logged-out visitors hitting a protected page (Markets, Trade, Earn…)
-      // are sent to create an account rather than a bare login screen.
       router.replace('/register');
       return;
     }
-    setReady(true);
-  }, [isAuthenticated, hasHydrated, router]);
+    // Validate the session against the server with a RAW axios call (bypassing
+    // the global interceptor so we control the outcome). A stale/deleted account
+    // can still carry a syntactically-valid token; verify it really exists so
+    // old demo sessions can't linger in an empty logged-in state.
+    let cancelled = false;
+    axios
+      .get(`${API_BASE_URL}/users/me`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(() => { if (!cancelled) setReady(true); })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err?.response?.status === 401) {
+          logout();
+          router.replace('/register');
+        } else {
+          // Network hiccup / cold start — trust the local session for now
+          setReady(true);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [isAuthenticated, hasHydrated, router, logout]);
 
   if (!ready) {
     return (
