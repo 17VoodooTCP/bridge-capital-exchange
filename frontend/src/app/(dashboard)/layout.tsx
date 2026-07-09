@@ -18,7 +18,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // stored token has been hydrated back into the store.
     if (!hasHydrated) return;
     if (!isAuthenticated) {
-      router.replace('/login');
+      // Logged-out visitors hitting a protected page (Markets, Trade, Earn…)
+      // are sent to create an account rather than a bare login screen.
+      router.replace('/register');
       return;
     }
     setReady(true);

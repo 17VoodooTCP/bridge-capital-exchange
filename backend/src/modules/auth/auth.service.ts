@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -83,6 +83,57 @@ export class AuthService {
         email: true,
       });
     }
+  }
+
+  /** Sends a password-reset link. Always resolves OK so emails can't be enumerated. */
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } }).catch(() => null);
+    if (user) {
+      const { randomBytes } = await import('crypto');
+      const token = randomBytes(24).toString('hex');
+      const resetTokenHash = await bcrypt.hash(token, 10);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { resetTokenHash, resetTokenExpires: new Date(Date.now() + 30 * 60 * 1000) },
+      });
+      const link = `${process.env.FRONTEND_URL || ''}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+      await this.notifications.sendEmail(
+        email,
+        'Reset your password',
+        `<div style="font-family:Arial,sans-serif;padding:24px;background:#0A0B0D;color:#E6EDF3">
+          <h2>Password reset requested</h2>
+          <p style="color:#8B949E">Hi ${user.name}, click the button below to set a new password. This link expires in 30 minutes.</p>
+          <a href="${link}" style="display:inline-block;background:#F59E0B;color:#000;font-weight:bold;padding:12px 24px;border-radius:10px;text-decoration:none;margin:16px 0">Reset Password</a>
+          <p style="color:#6E7681;font-size:12px">If you didn't request this, you can safely ignore this email.</p>
+        </div>`,
+      );
+    }
+    return { success: true, message: 'If that email exists, a reset link has been sent.' };
+  }
+
+  async resetPassword(email: string, token: string, newPassword: string) {
+    if (!newPassword || newPassword.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+    const user = await this.prisma.user.findUnique({ where: { email } }).catch(() => null);
+    if (!user || !user.resetTokenHash || !user.resetTokenExpires || user.resetTokenExpires < new Date()) {
+      throw new UnauthorizedException('Reset link is invalid or has expired. Request a new one.');
+    }
+    const ok = await bcrypt.compare(token, user.resetTokenHash);
+    if (!ok) throw new UnauthorizedException('Reset link is invalid or has expired. Request a new one.');
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash, resetTokenHash: null, resetTokenExpires: null, refreshTokenHash: null },
+    });
+    await this.notifications.notify(user.id, {
+      title: 'Your password was changed',
+      body: 'Your account password was just reset. If this was not you, contact support immediately.',
+      type: 'SECURITY',
+      email: true,
+    });
+    return { success: true };
   }
 
   async logout(userId: string) {

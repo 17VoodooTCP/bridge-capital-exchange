@@ -2,13 +2,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  ArrowRight, ChevronRight, QrCode, Shield, Globe, Headphones,
-  Apple, Play, Sparkles, TrendingUp, X, User, Mail, Lock,
-} from 'lucide-react';
-import toast from 'react-hot-toast';
-import { authApi } from '@/lib/api';
-import { useAuthStore } from '@/store/authStore';
+import { ArrowRight, ChevronRight, Shield, Sparkles, TrendingUp, Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/Logo';
 import { AssetIcon } from '@/components/ui/AssetIcon';
@@ -21,13 +15,8 @@ const glass = 'backdrop-blur-xl bg-white/[0.04] border border-white/[0.08] round
 
 export default function LandingPage() {
   const router = useRouter();
-  const { setAuth } = useAuthStore();
   const { assets } = useMarketData();
   const [heroTab, setHeroTab] = useState<'hot' | 'gainers'>('hot');
-  const [signupOpen, setSignupOpen] = useState(false);
-  const [flipped, setFlipped] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [creating, setCreating] = useState(false);
   const [phoneScreen, setPhoneScreen] = useState(0);
 
   // Cycle the phone demo through Portfolio → Trade → Earn
@@ -117,7 +106,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link href="/login" className="px-4 py-2 text-sm text-[#E6EDF3] hover:text-amber-400 transition-colors">Log In</Link>
-            <Button size="sm" onClick={() => { setSignupOpen(true); setFlipped(false); }}>Sign Up</Button>
+            <Link href="/register"><Button size="sm">Sign Up</Button></Link>
           </div>
         </div>
       </header>
@@ -137,9 +126,9 @@ export default function LandingPage() {
               Crypto, stocks and ETFs in a single secure account. Open yours in under a minute.
             </p>
             <div className="flex items-center gap-4">
-              <Button size="xl" onClick={() => { setSignupOpen(true); setFlipped(false); }} rightIcon={<ArrowRight size={18} />}>
-                Sign Up
-              </Button>
+              <Link href="/register">
+                <Button size="xl" rightIcon={<ArrowRight size={18} />}>Sign Up</Button>
+              </Link>
               <Link href="/markets" className="text-sm text-[#8B949E] hover:text-amber-400 transition-colors">
                 Explore markets first →
               </Link>
@@ -495,83 +484,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* ─── Sign-up flip modal ─── */}
-      {signupOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setSignupOpen(false)} />
-          <div className="flip-scene relative w-full max-w-sm h-[480px]">
-            <div className={cn('flip-inner relative w-full h-full', flipped && 'flipped')}>
-
-              {/* FRONT — Bitcoin avatar greeting */}
-              <div className={cn('flip-face absolute inset-0', glass, 'bg-[#161B22]/95 flex flex-col items-center justify-center text-center p-8')}>
-                <button onClick={() => setSignupOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-lg text-[#8B949E] hover:text-[#E6EDF3] hover:bg-white/5">
-                  <X size={16} />
-                </button>
-                {/* Rotating liquid-glass logo avatar */}
-                <div className="btc-avatar relative mb-6">
-                  <div className={cn(glass, 'w-32 h-32 !rounded-full flex items-center justify-center shadow-[0_0_70px_rgba(245,158,11,0.3)] relative overflow-hidden')}>
-                    {/* glass sheen */}
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/15 via-transparent to-transparent" />
-                    <div className="logo-spin">
-                      <Logo size={84} rounded={false} className="!rounded-full" />
-                    </div>
-                  </div>
-                  {/* orbiting glass ring */}
-                  <div className="globe-ring absolute -inset-2 rounded-full border border-amber-500/25 border-t-amber-400/70" />
-                </div>
-                <h3 className="text-2xl font-bold mb-1">
-                  Hello! <span className="text-amber-400">₿</span>
-                </h3>
-                <p className="text-sm text-[#8B949E] mb-8 max-w-[240px]">
-                  I&apos;m Bit, your guide at Bridge Capital. Ready to open your account?
-                </p>
-                <Button size="lg" fullWidth onClick={() => setFlipped(true)} rightIcon={<ArrowRight size={16} />}>
-                  Let&apos;s Get Started
-                </Button>
-                <button onClick={() => { setSignupOpen(false); router.push('/login'); }} className="mt-3 text-xs text-[#8B949E] hover:text-amber-400">
-                  I already have an account
-                </button>
-              </div>
-
-              {/* BACK — sign-up form */}
-              <div className={cn('flip-face flip-back absolute inset-0', glass, 'bg-[#161B22]/95 flex flex-col p-8')}>
-                <button onClick={() => setSignupOpen(false)} className="absolute top-4 right-4 p-1.5 rounded-lg text-[#8B949E] hover:text-[#E6EDF3] hover:bg-white/5">
-                  <X size={16} />
-                </button>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className={cn(glass, 'w-11 h-11 !rounded-full flex items-center justify-center overflow-hidden')}>
-                    <div className="logo-spin"><Logo size={30} rounded={false} className="!rounded-full" /></div>
-                  </div>
-                  <div>
-                    <div className="font-bold">Create your account</div>
-                    <div className="text-xs text-[#8B949E]">Takes less than a minute</div>
-                  </div>
-                </div>
-                <div className="space-y-4 flex-1">
-                  <div className={cn(glass, 'flex items-center gap-2 px-3 py-2.5')}>
-                    <User size={15} className="text-[#8B949E] shrink-0" />
-                    <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" className="flex-1 bg-transparent text-sm outline-none placeholder-[#6E7681]" />
-                  </div>
-                  <div className={cn(glass, 'flex items-center gap-2 px-3 py-2.5')}>
-                    <Mail size={15} className="text-[#8B949E] shrink-0" />
-                    <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email address" className="flex-1 bg-transparent text-sm outline-none placeholder-[#6E7681]" />
-                  </div>
-                  <div className={cn(glass, 'flex items-center gap-2 px-3 py-2.5')}>
-                    <Lock size={15} className="text-[#8B949E] shrink-0" />
-                    <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && createAccount()} placeholder="Password (8+ characters)" className="flex-1 bg-transparent text-sm outline-none placeholder-[#6E7681]" />
-                  </div>
-                </div>
-                <div className="space-y-3 mt-6">
-                  <Button size="lg" fullWidth isLoading={creating} onClick={createAccount}>Create Account</Button>
-                  <button onClick={() => setFlipped(false)} className="w-full text-xs text-[#8B949E] hover:text-amber-400">← Back to Bit</button>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ─── Footer ─── */}
       <footer className="border-t border-white/[0.06] bg-[#0D1117]">

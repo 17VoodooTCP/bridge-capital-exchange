@@ -4,45 +4,27 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  // ── Admin + demo user ──────────────────────────────────────────────
-  const adminHash = await bcrypt.hash('BridgeAdmin!2026', 10);
-  const userHash = await bcrypt.hash('BridgeUser!2026', 10);
-
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@bridgecapital.com' },
-    update: {},
-    create: {
-      email: 'admin@bridgecapital.com',
-      name: 'Platform Admin',
-      passwordHash: adminHash,
-      role: 'SUPER_ADMIN',
-      kycStatus: 'APPROVED',
-      twoFactorEnabled: false,
-      country: 'US',
-    },
-  });
-
-  const demo = await prisma.user.upsert({
-    where: { email: 'demo@bridgecapital.com' },
-    update: {},
-    create: {
-      email: 'demo@bridgecapital.com',
-      name: 'John Smith',
-      passwordHash: userHash,
-      role: 'USER',
-      kycStatus: 'APPROVED',
-      country: 'US',
-    },
-  });
-
-  // Starter balances for the demo user
-  for (const [asset, balance] of [['USDT', 10000], ['BTC', 0.25], ['ETH', 2.5]] as const) {
-    await prisma.wallet.upsert({
-      where: { userId_asset: { userId: demo.id, asset } },
-      update: {},
-      create: { userId: demo.id, asset, balance },
-    });
+  // ── Admin account ──────────────────────────────────────────────────
+  // Password comes from SEED_ADMIN_PASSWORD env — never hardcode credentials.
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (!adminPassword) {
+    console.log('⚠️  SEED_ADMIN_PASSWORD not set — skipping admin creation');
   }
+  const admin = adminPassword
+    ? await prisma.user.upsert({
+        where: { email: process.env.SEED_ADMIN_EMAIL || 'admin@bridgecapital.com' },
+        update: {},
+        create: {
+          email: process.env.SEED_ADMIN_EMAIL || 'admin@bridgecapital.com',
+          name: 'Platform Admin',
+          passwordHash: await bcrypt.hash(adminPassword, 10),
+          role: 'SUPER_ADMIN',
+          kycStatus: 'APPROVED',
+          twoFactorEnabled: false,
+          country: 'US',
+        },
+      })
+    : null;
 
   // ── Staking plans ──────────────────────────────────────────────────
   const plans = [
@@ -74,8 +56,7 @@ async function main() {
   }
 
   console.log('✅ Seed complete');
-  console.log(`   Admin: admin@bridgecapital.com / BridgeAdmin!2026 (${admin.id})`);
-  console.log(`   Demo:  demo@bridgecapital.com / BridgeUser!2026 (${demo.id})`);
+  if (admin) console.log(`   Admin account ready: ${admin.email}`);
 }
 
 main()

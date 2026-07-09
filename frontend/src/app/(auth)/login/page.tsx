@@ -115,7 +115,7 @@ export default function LoginPage() {
                 />
                 Remember me
               </label>
-              <Link href="#" className="text-amber-400 hover:text-amber-300">Forgot password?</Link>
+              <Link href="/forgot-password" className="text-amber-400 hover:text-amber-300">Forgot password?</Link>
             </div>
 
             <Button type="submit" fullWidth size="lg" isLoading={loading} rightIcon={<ArrowRight size={16} />}>

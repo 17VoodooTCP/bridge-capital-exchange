@@ -27,6 +27,16 @@ export class AuthController {
     return this.auth.logout(req.user.userId);
   }
 
+  @Post('forgot-password')
+  forgotPassword(@Body() body: { email: string }) {
+    return this.auth.forgotPassword(body.email);
+  }
+
+  @Post('reset-password')
+  resetPassword(@Body() body: { email: string; token: string; newPassword: string }) {
+    return this.auth.resetPassword(body.email, body.token, body.newPassword);
+  }
+
   @Post('refresh')
   refresh(@Body() body: { userId: string; refreshToken: string }) {
     return this.auth.refresh(body.userId, body.refreshToken);
