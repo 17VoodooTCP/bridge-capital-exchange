@@ -67,8 +67,7 @@ export default function LoginPage() {
             <span className="font-bold">Bridge Capital</span>
           </div>
 
-          <h1 className="text-2xl font-bold mb-1">Sign in</h1>
-          <p className="text-sm text-[#8B949E] mb-8">Enter your credentials to access your account</p>
+          <h1 className="text-2xl font-bold mb-8">Sign in</h1>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
