@@ -5,7 +5,7 @@ import type { Timeframe } from '@/types';
 const RAW_API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
 export const API_BASE_URL = RAW_API_URL.endsWith('/api') ? RAW_API_URL : `${RAW_API_URL}/api`;
 export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Bridge Capital Exchange';
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Bridge Capital';
 
 export const TIMEFRAMES: { label: string; value: Timeframe }[] = [
   { label: '1m', value: '1m' },

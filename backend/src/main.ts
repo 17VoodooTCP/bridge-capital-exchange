@@ -16,7 +16,7 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('Bridge Capital Exchange API')
+    .setTitle('Bridge Capital API')
     .setDescription('Multi-asset trading and investment platform API')
     .setVersion('1.0')
     .addBearerAuth()
@@ -26,7 +26,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`🚀 Bridge Capital Exchange API running on http://localhost:${port}/api`);
+  console.log(`🚀 Bridge Capital API running on http://localhost:${port}/api`);
   console.log(`📚 Swagger docs at http://localhost:${port}/api/docs`);
 }
 bootstrap();

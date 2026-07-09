@@ -24,7 +24,7 @@ export class AuthService {
     });
     await this.recordSession(user.id, meta);
     await this.notifications.notify(user.id, {
-      title: 'Welcome to Bridge Capital Exchange 🎉',
+      title: 'Welcome to Bridge Capital 🎉',
       body: 'Your account has been created successfully. Complete KYC verification in Settings to unlock deposits, withdrawals, and full trading limits.',
       type: 'ACCOUNT',
       email: true,

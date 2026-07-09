@@ -51,7 +51,6 @@ export default function RegisterPage() {
           <Logo size={40} />
           <div>
             <div className="text-sm font-bold">Bridge Capital</div>
-            <div className="text-[10px] text-[#8B949E] tracking-[0.2em]">EXCHANGE</div>
           </div>
         </Link>
 

@@ -97,7 +97,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-center text-xs text-[#6E7681] mt-6">
-          Bridge Capital Exchange · Admin Portal v1.0
+          Bridge Capital · Admin Portal v1.0
         </p>
       </div>
     </div>

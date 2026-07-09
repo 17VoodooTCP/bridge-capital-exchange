@@ -77,7 +77,7 @@ export class NotificationsService {
         body: JSON.stringify({
           from: process.env.MAIL_FROM || 'Bridge Capital <onboarding@resend.dev>',
           to: [to],
-          subject: `${subject} — Bridge Capital Exchange`,
+          subject: `${subject} — Bridge Capital`,
           html,
         }),
       });
@@ -94,7 +94,7 @@ export class NotificationsService {
 <div style="background:#0A0B0D;padding:40px 16px;font-family:Arial,Helvetica,sans-serif">
   <div style="max-width:520px;margin:0 auto;background:#161B22;border:1px solid #21262D;border-radius:16px;overflow:hidden">
     <div style="background:linear-gradient(135deg,#F59E0B,#EA580C);padding:20px 28px">
-      <span style="font-size:18px;font-weight:bold;color:#000">Bridge Capital Exchange</span>
+      <span style="font-size:18px;font-weight:bold;color:#000">Bridge Capital</span>
     </div>
     <div style="padding:28px;color:#E6EDF3">
       <h2 style="margin:0 0 12px;font-size:18px">${title}</h2>
@@ -103,7 +103,7 @@ export class NotificationsService {
       <a href="${process.env.FRONTEND_URL || '#'}" style="display:inline-block;background:#F59E0B;color:#000;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 22px;border-radius:10px">Open Dashboard</a>
     </div>
     <div style="padding:16px 28px;border-top:1px solid #21262D;color:#6E7681;font-size:11px;line-height:1.5">
-      This is an automated message from Bridge Capital Exchange. If you did not expect this email, please contact support immediately.
+      This is an automated message from Bridge Capital. If you did not expect this email, please contact support immediately.
     </div>
   </div>
 </div>`;

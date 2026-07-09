@@ -737,7 +737,7 @@ export const mockChatMessages: ChatMessage[] = [
     senderId: 'bot',
     senderName: 'BCE Support Bot',
     senderRole: 'BOT',
-    content: 'Welcome to Bridge Capital Exchange Support! How can I help you today?',
+    content: 'Welcome to Bridge Capital Support! How can I help you today?',
     createdAt: new Date(Date.now() - 60000 * 5).toISOString(),
     isRead: true,
   },

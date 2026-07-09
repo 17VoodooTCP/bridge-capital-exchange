@@ -7,7 +7,7 @@ import { ThemeProvider } from '@/components/layout/ThemeProvider';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'Bridge Capital Exchange — Trade Crypto, Stocks & ETFs',
+  title: 'Bridge Capital — Trade Crypto, Stocks & ETFs',
   description:
     'Enterprise-grade multi-asset trading platform. Trade Bitcoin, Ethereum, US stocks, and ETFs with institutional-grade security and real-time market data.',
   keywords: ['crypto', 'trading', 'stocks', 'ETFs', 'bitcoin', 'ethereum', 'investment'],

@@ -11,7 +11,7 @@ export function Logo({ size = 36, className, rounded = true }: LogoProps) {
   return (
     <img
       src="/logo.svg"
-      alt="Bridge Capital Exchange"
+      alt="Bridge Capital"
       width={size}
       height={size}
       className={cn('object-contain', rounded && 'rounded-lg', className)}

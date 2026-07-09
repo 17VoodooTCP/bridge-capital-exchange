@@ -45,7 +45,6 @@ export default function LoginPage() {
           <Logo size={36} />
           <div>
             <div className="text-sm font-bold">Bridge Capital</div>
-            <div className="text-[10px] text-[#8B949E] tracking-[0.2em]">EXCHANGE</div>
           </div>
         </Link>
         <div className="relative z-10">
@@ -65,7 +64,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <Logo size={36} />
-            <span className="font-bold">Bridge Capital Exchange</span>
+            <span className="font-bold">Bridge Capital</span>
           </div>
 
           <h1 className="text-2xl font-bold mb-1">Sign in</h1>

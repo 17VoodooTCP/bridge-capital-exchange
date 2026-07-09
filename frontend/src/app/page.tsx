@@ -92,7 +92,6 @@ export default function LandingPage() {
               <Logo size={34} />
               <div>
                 <div className="text-sm font-bold leading-tight">Bridge Capital</div>
-                <div className="text-[9px] text-[#8B949E] tracking-[0.25em]">EXCHANGE</div>
               </div>
             </Link>
             <nav className="hidden lg:flex items-center gap-6 text-sm text-[#8B949E]">
@@ -512,7 +511,7 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="border-t border-white/[0.06] mt-12 pt-6 text-xs text-[#6E7681] flex flex-col md:flex-row justify-between gap-3">
-            <span>© 2026 Bridge Capital Exchange. All rights reserved.</span>
+            <span>© 2026 Bridge Capital. All rights reserved.</span>
             <span>Trading involves risk. Past performance is not indicative of future results.</span>
           </div>
         </div>

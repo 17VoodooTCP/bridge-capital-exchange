@@ -77,7 +77,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           {!collapsed && (
             <div>
               <div className="text-sm font-bold text-[#E6EDF3] leading-tight">Bridge Capital</div>
-              <div className="text-xs text-[#8B949E] tracking-widest">EXCHANGE</div>
             </div>
           )}
         </div>

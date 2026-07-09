@@ -140,7 +140,7 @@ export function WalletConnectButton({ className }: { className?: string }) {
                 onClick={() => { setShowMenu(false); setDepositModal(true); }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-[#8B949E] hover:text-amber-400 hover:bg-amber-500/10 rounded-lg"
               >
-                <ArrowDownLeft size={14} /> Deposit to Exchange
+                <ArrowDownLeft size={14} /> Deposit to Account
               </button>
               <button
                 onClick={handleDisconnect}
@@ -205,7 +205,7 @@ export function WalletConnectButton({ className }: { className?: string }) {
             </div>
           )}
           <p className="text-xs text-[#8B949E] text-center pb-2">
-            Connect a browser-extension wallet to Bridge Capital Exchange
+            Connect a browser-extension wallet to Bridge Capital
           </p>
           {INJECTED_WALLETS.map((w) => (
             <button
