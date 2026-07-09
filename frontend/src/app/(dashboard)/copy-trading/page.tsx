@@ -60,7 +60,7 @@ export default function CopyTradingPage() {
   const [positions, setPositions] = useState<CopyPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [market, setMarket] = useState('ALL');
-  const [sort, setSort] = useState<'roi30d' | 'winRate' | 'copiers'>('roi30d');
+  const [sort, setSort] = useState<'roi30d' | 'winRate' | 'copiers'>('winRate');
   const [query, setQuery] = useState('');
   const [copyModal, setCopyModal] = useState<Trader | null>(null);
   const [allocation, setAllocation] = useState('500');
@@ -155,8 +155,8 @@ export default function CopyTradingPage() {
               ))}
             </div>
             <select value={sort} onChange={(e) => setSort(e.target.value as 'roi30d' | 'winRate' | 'copiers')} className="bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2 text-sm outline-none">
-              <option value="roi30d">Sort: 30d ROI</option>
               <option value="winRate">Sort: Win Rate</option>
+              <option value="roi30d">Sort: 30d ROI</option>
               <option value="copiers">Sort: Popularity</option>
             </select>
             <div className="flex items-center gap-2 bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2 md:ml-auto md:w-72">
@@ -187,15 +187,16 @@ export default function CopyTradingPage() {
 
                     <div className="grid grid-cols-2 gap-y-2 gap-x-3 text-sm">
                       <div>
-                        <div className="text-[10px] text-[#8B949E] uppercase">30d ROI (sim.)</div>
-                        <div className={cn('font-semibold flex items-center gap-1', getChangeColor(t.roi30d))}>
-                          {t.roi30d >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                          {formatPercent(t.roi30d)}
+                        <div className="text-[10px] text-[#8B949E] uppercase">Win Rate</div>
+                        <div className="font-semibold text-green-400 flex items-center gap-1">
+                          <TrendingUp size={13} />{t.winRate}%
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-[#8B949E] uppercase">Win Rate</div>
-                        <div className="font-semibold">{t.winRate}%</div>
+                        <div className="text-[10px] text-[#8B949E] uppercase">30d ROI (sim.)</div>
+                        <div className={cn('font-semibold', getChangeColor(t.roi30d))}>
+                          {formatPercent(t.roi30d)}
+                        </div>
                       </div>
                       <div>
                         <div className="text-[10px] text-[#8B949E] uppercase">Wins / Losses</div>

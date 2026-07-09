@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, ArrowLeftRight, ShieldCheck, Wallet,
-  Headphones, Settings, LogOut, ExternalLink,
+  Headphones, Settings, LogOut, ExternalLink, Copy,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/layout/Logo';
@@ -14,6 +14,7 @@ const adminNav = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/admin/kyc', label: 'KYC Review', icon: ShieldCheck },
+  { href: '/admin/copy-trading', label: 'Copy Trading', icon: Copy },
   { href: '/admin/wallets', label: 'Wallet Config', icon: Wallet },
   { href: '/admin/support', label: 'Support', icon: Headphones },
   { href: '/admin/settings', label: 'Platform Settings', icon: Settings },
