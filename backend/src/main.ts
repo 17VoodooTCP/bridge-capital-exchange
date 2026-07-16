@@ -7,8 +7,28 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
+
+  // Allow every legitimate frontend origin: the apex domain, www, the Vercel
+  // deployment, localhost, plus any extra hosts listed in FRONTEND_URL
+  // (comma-separated). Requests with no Origin (curl, server-to-server) pass.
+  const allowedOrigins = new Set(
+    [
+      'https://bridgecapitalv1.com',
+      'https://www.bridgecapitalv1.com',
+      'https://bridge-capital-exchange.vercel.app',
+      'http://localhost:3000',
+      ...(process.env.FRONTEND_URL || '').split(',').map((s) => s.trim()),
+    ].filter(Boolean),
+  );
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   });
   app.useGlobalPipes(
