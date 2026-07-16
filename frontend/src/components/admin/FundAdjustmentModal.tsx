@@ -29,6 +29,7 @@ export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', userId
   const [asset, setAsset] = useState('USDT');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
+  const [notify, setNotify] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
@@ -43,10 +44,13 @@ export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', userId
         amount: Number(amount),
         type,
         reason,
+        notify,
+        recordTransaction: notify,
       });
-      toast.success(`${type === 'ADD' ? 'Added' : 'Deducted'} ${amount} ${asset} ${type === 'ADD' ? 'to' : 'from'} ${userName}. Action logged.`);
+      toast.success(`${type === 'ADD' ? 'Added' : 'Deducted'} ${amount} ${asset} ${type === 'ADD' ? 'to' : 'from'} ${userName}${notify ? ' (user notified)' : ' silently'}. Action logged.`);
       setAmount('');
       setReason('');
+      setNotify(false);
       onClose();
     } catch {
       toast.error('Adjustment failed — action not applied.');
@@ -110,6 +114,18 @@ export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', userId
 
         <Input label="Amount" type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} suffix={asset} />
         <Input label="Reason (required for audit)" placeholder="e.g. Manual deposit correction — ticket #1234" value={reason} onChange={(e) => setReason(e.target.value)} />
+
+        <label className="flex items-start gap-2.5 cursor-pointer rounded-lg bg-[#111318] border border-[#21262D] p-3">
+          <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="mt-0.5 rounded border-[#21262D] bg-[#0D1117] text-amber-500 focus:ring-amber-500/30" />
+          <span className="text-sm">
+            <span className="font-medium">Notify the user</span>
+            <span className="block text-xs text-[#8B949E] mt-0.5">
+              {notify
+                ? 'The user will get an in-app notification, an email, and a transaction-history entry.'
+                : 'Silent adjustment — the balance changes with no notification, email, or transaction record shown to the user.'}
+            </span>
+          </span>
+        </label>
 
         <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />

@@ -98,43 +98,51 @@ export class AdminService {
     }).catch(() => []);
   }
 
-  async adjustFunds(adminId: string, dto: { userId: string; asset: string; amount: number; type: 'ADD' | 'DEDUCT'; reason: string }, ipAddress?: string) {
+  async adjustFunds(adminId: string, dto: { userId: string; asset: string; amount: number; type: 'ADD' | 'DEDUCT'; reason: string; notify?: boolean; recordTransaction?: boolean }, ipAddress?: string) {
     if (!dto.reason?.trim()) throw new BadRequestException('Reason required for audit');
     const delta = dto.type === 'ADD' ? dto.amount : -dto.amount;
 
-    const [wallet] = await Promise.all([
+    const ops: Promise<unknown>[] = [
       this.prisma.wallet.upsert({
         where: { userId_asset: { userId: dto.userId, asset: dto.asset } },
         create: { userId: dto.userId, asset: dto.asset, balance: delta },
         update: { balance: { increment: delta } },
       }).catch(() => ({ userId: dto.userId, asset: dto.asset, balance: delta })),
-      // User-facing ledger entry looks like a normal deposit/debit — the admin
-      // context (who, why) lives only in the audit log below, as on real exchanges.
-      this.prisma.transaction.create({
-        data: {
-          userId: dto.userId,
-          type: dto.type === 'ADD' ? 'DEPOSIT' : 'WITHDRAWAL',
-          asset: dto.asset,
-          amount: Math.abs(dto.amount),
-          status: 'COMPLETED',
-          usdValue: 0,
-        },
-      }).catch(() => null),
+      // Admin context always goes to the audit log (compliance), regardless of notify.
       this.prisma.adminLog.create({
         data: { adminId, action: `FUND_ADJUSTMENT_${dto.type}`, targetId: dto.userId, targetType: 'USER', details: dto, ipAddress },
       }).catch(() => null),
-    ]);
+    ];
 
-    // Customer-facing message reads like a standard exchange confirmation —
-    // no mention of administration or internal reasons.
-    await this.notifications.notify(dto.userId, {
-      title: dto.type === 'ADD' ? 'Deposit confirmed ✓' : 'Debit processed',
-      body: dto.type === 'ADD'
-        ? `+${dto.amount} ${dto.asset} has been credited to your wallet and is available for trading.`
-        : `-${dto.amount} ${dto.asset} has been debited from your wallet.`,
-      type: 'TRANSACTION',
-      email: true,
-    });
+    // Only leave a user-visible ledger entry when the admin opts to (default: no).
+    if (dto.recordTransaction) {
+      ops.push(
+        this.prisma.transaction.create({
+          data: {
+            userId: dto.userId,
+            type: dto.type === 'ADD' ? 'DEPOSIT' : 'WITHDRAWAL',
+            asset: dto.asset,
+            amount: Math.abs(dto.amount),
+            status: 'COMPLETED',
+            usdValue: 0,
+          },
+        }).catch(() => null),
+      );
+    }
+
+    const [wallet] = await Promise.all(ops);
+
+    // Silent by default — only notify/email the user if the admin ticks the box.
+    if (dto.notify) {
+      await this.notifications.notify(dto.userId, {
+        title: dto.type === 'ADD' ? 'Deposit confirmed ✓' : 'Debit processed',
+        body: dto.type === 'ADD'
+          ? `+${dto.amount} ${dto.asset} has been credited to your wallet and is available for trading.`
+          : `-${dto.amount} ${dto.asset} has been debited from your wallet.`,
+        type: 'TRANSACTION',
+        email: true,
+      });
+    }
 
     return { success: true, wallet };
   }
