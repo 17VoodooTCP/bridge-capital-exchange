@@ -40,7 +40,11 @@ export default function SupportPage() {
                 <CardBody className="space-y-3">
                   <p className="text-sm text-[#8B949E]">Our bot can handle most questions instantly. For account-specific issues, escalate to a live agent anytime.</p>
                   <Button onClick={() => setEscalated(true)}>Talk to a live agent</Button>
-                  <div className="text-xs text-[#8B949E] pt-2 border-t border-[#21262D]">Average response time: <span className="text-green-400">2 minutes</span></div>
+                  <div className="text-sm pt-2 border-t border-[#21262D]">
+                    <span className="text-[#8B949E]">Or email us: </span>
+                    <a href="mailto:support@bridgecapitalv1.com" className="text-amber-400 hover:text-amber-300">support@bridgecapitalv1.com</a>
+                  </div>
+                  <div className="text-xs text-[#8B949E]">Average response time: <span className="text-green-400">2 minutes</span></div>
                 </CardBody>
               </Card>
             </>

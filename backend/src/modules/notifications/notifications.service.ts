@@ -75,7 +75,8 @@ export class NotificationsService {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: process.env.MAIL_FROM || 'Bridge Capital <onboarding@resend.dev>',
+          from: process.env.MAIL_FROM || 'Bridge Capital <support@bridgecapitalv1.com>',
+          reply_to: process.env.SUPPORT_EMAIL || 'support@bridgecapitalv1.com',
           to: [to],
           subject: `${subject} — Bridge Capital`,
           html,

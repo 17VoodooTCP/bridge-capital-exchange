@@ -510,7 +510,10 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-          <div className="border-t border-white/[0.06] mt-12 pt-6 text-xs text-[#6E7681] flex flex-col md:flex-row justify-between gap-3">
+          <div className="mt-8 text-sm text-[#8B949E]">
+            Support: <a href="mailto:support@bridgecapitalv1.com" className="text-amber-400 hover:text-amber-300">support@bridgecapitalv1.com</a>
+          </div>
+          <div className="border-t border-white/[0.06] mt-6 pt-6 text-xs text-[#6E7681] flex flex-col md:flex-row justify-between gap-3">
             <span>© 2026 Bridge Capital. All rights reserved.</span>
             <span>Trading involves risk. Past performance is not indicative of future results.</span>
           </div>
