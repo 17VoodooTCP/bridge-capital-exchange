@@ -29,6 +29,15 @@ interface Trader {
   isActive: boolean;
 }
 
+interface CopyPos {
+  id: string;
+  asset: string;
+  allocation: number;
+  pnl: number;
+  trader: { name: string; strategy: string };
+  user?: { name: string; email: string };
+}
+
 const RISKS = ['LOW', 'MEDIUM', 'HIGH'];
 const MARKETS = ['CRYPTO', 'STOCKS', 'MIXED'];
 const AVATAR_ASSETS = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'USDT', 'AVAX'];
@@ -84,6 +93,8 @@ export default function AdminCopyTradingPage() {
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<Partial<Trader> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [positions, setPositions] = useState<CopyPos[]>([]);
+  const [pnlDraft, setPnlDraft] = useState<Record<string, string>>({});
   const photoRef = useRef<HTMLInputElement>(null);
 
   const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,14 +114,30 @@ export default function AdminCopyTradingPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/copy-trading/admin/traders');
-      setTraders(Array.isArray(res.data) ? res.data : []);
+      const [tRes, pRes] = await Promise.all([
+        api.get('/copy-trading/admin/traders'),
+        api.get('/copy-trading/admin/positions').catch(() => ({ data: [] })),
+      ]);
+      setTraders(Array.isArray(tRes.data) ? tRes.data : []);
+      setPositions(Array.isArray(pRes.data) ? pRes.data : []);
     } catch {
       toast.error('Could not load traders.');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const savePnl = async (posId: string) => {
+    const val = Number(pnlDraft[posId]);
+    if (Number.isNaN(val)) return toast.error('Enter a number');
+    try {
+      await api.patch(`/copy-trading/admin/positions/${posId}/pnl`, { pnl: val });
+      setPositions((list) => list.map((p) => (p.id === posId ? { ...p, pnl: val } : p)));
+      toast.success('Copy P&L updated — user notified');
+    } catch {
+      toast.error('Could not update P&L');
+    }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -215,6 +242,50 @@ export default function AdminCopyTradingPage() {
             {filtered.length === 0 && <div className="py-12 text-center text-sm text-[#8B949E]">No traders found.</div>}
           </div>
         )}
+      </Card>
+
+      {/* Active copy positions — adjust the Copy P&L shown to each user */}
+      <Card>
+        <div className="p-4 border-b border-[#21262D]">
+          <h3 className="font-semibold">Copy Positions — P&amp;L Control</h3>
+          <p className="text-xs text-[#8B949E] mt-0.5">Add or remove the Copy P&amp;L on any active position. Users are notified and the amount is returned with their allocation when they stop copying.</p>
+        </div>
+        <div className="overflow-x-auto">
+          {positions.length === 0 ? (
+            <div className="py-10 text-center text-sm text-[#8B949E]">No active copy positions yet.</div>
+          ) : (
+            <table className="w-full">
+              <thead><tr className="text-xs text-[#8B949E] uppercase border-b border-[#21262D]">
+                <th className="text-left px-5 py-3 font-semibold">User</th>
+                <th className="text-left px-5 py-3 font-semibold">Copying</th>
+                <th className="text-right px-5 py-3 font-semibold">Allocation</th>
+                <th className="text-right px-5 py-3 font-semibold">Copy P&amp;L</th>
+                <th className="text-right px-5 py-3 font-semibold">Set P&amp;L</th>
+              </tr></thead>
+              <tbody>
+                {positions.map((p) => (
+                  <tr key={p.id} className="border-b border-[#21262D]/50">
+                    <td className="px-5 py-3"><div className="text-sm font-medium">{p.user?.name || '—'}</div><div className="text-xs text-[#8B949E]">{p.user?.email}</div></td>
+                    <td className="px-5 py-3 text-sm">{p.trader.name}<div className="text-xs text-[#8B949E]">{p.trader.strategy}</div></td>
+                    <td className="px-5 py-3 text-right font-mono text-sm">{p.allocation} {p.asset}</td>
+                    <td className={cn('px-5 py-3 text-right font-mono text-sm', p.pnl >= 0 ? 'text-green-400' : 'text-red-400')}>{p.pnl >= 0 ? '+' : ''}{p.pnl} {p.asset}</td>
+                    <td className="px-5 py-3">
+                      <div className="flex gap-1 justify-end">
+                        <input
+                          type="number"
+                          value={pnlDraft[p.id] ?? String(p.pnl)}
+                          onChange={(e) => setPnlDraft((d) => ({ ...d, [p.id]: e.target.value }))}
+                          className="w-24 bg-[#111318] border border-[#21262D] rounded-lg px-2 py-1.5 text-sm text-right outline-none focus:border-amber-500/50"
+                        />
+                        <Button size="xs" onClick={() => savePnl(p.id)}>Save</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </Card>
 
       {/* Edit / create modal */}

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { AssetIcon } from '@/components/ui/AssetIcon';
 import api from '@/lib/api';
+import { useWalletData } from '@/hooks/useWalletData';
 import { formatCurrency, formatPercent, getChangeColor, cn, getInitials } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -66,8 +67,13 @@ export default function CopyTradingPage() {
   const [sort, setSort] = useState<'roi30d' | 'winRate' | 'copiers'>('winRate');
   const [query, setQuery] = useState('');
   const [copyModal, setCopyModal] = useState<Trader | null>(null);
-  const [allocation, setAllocation] = useState('500');
+  const [allocation, setAllocation] = useState('');
+  const [copyAsset, setCopyAsset] = useState('USDT');
   const [submitting, setSubmitting] = useState(false);
+  const { balances } = useWalletData();
+
+  const fundedBalances = balances.filter((b) => b.available > 0);
+  const selectedBalance = balances.find((b) => b.symbol === copyAsset);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,13 +102,18 @@ export default function CopyTradingPage() {
 
   const copy = async () => {
     if (!copyModal) return;
+    const amt = Number(allocation) || 0;
+    if (amt <= 0) return toast.error('Enter an allocation amount');
+    if (!selectedBalance || selectedBalance.available < amt) {
+      return toast.error(`Insufficient ${copyAsset} balance. Available: ${selectedBalance?.available.toFixed(4) || 0} ${copyAsset}`);
+    }
     setSubmitting(true);
     try {
-      const res = await api.post<CopyPosition>('/copy-trading/copy', { traderId: copyModal.id, allocation: Number(allocation) || 0 });
+      const res = await api.post<CopyPosition>('/copy-trading/copy', { traderId: copyModal.id, allocation: amt, asset: copyAsset });
       setPositions((p) => [{ ...res.data, trader: copyModal }, ...p]);
       toast.success(`Copy trade connected — you are now copying ${copyModal.name}`);
       setCopyModal(null);
-      setAllocation('500');
+      setAllocation('');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg || 'Could not start copying.');
@@ -286,12 +297,49 @@ export default function CopyTradingPage() {
               <div className="bg-[#0D1117] rounded-lg p-3"><div className="text-[10px] text-[#8B949E]">Win Rate</div><div className="font-semibold">{copyModal.winRate}%</div></div>
               <div className="bg-[#0D1117] rounded-lg p-3"><div className="text-[10px] text-[#8B949E]">Profit Share</div><div className="font-semibold text-amber-400">{copyModal.profitSharePct}%</div></div>
             </div>
-            <Input label="Allocated Capital (USDT)" type="number" value={allocation} onChange={(e) => setAllocation(e.target.value)} placeholder="500" hint="Amount used to mirror this trader's positions. You can withdraw or adjust anytime." />
-            <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-              <Info size={13} className="shrink-0 mt-0.5" />
-              Simulated performance shown does not guarantee future results. Copy trading carries risk of loss.
-            </div>
-            <Button fullWidth size="lg" isLoading={submitting} onClick={copy}>Confirm & Start Copying</Button>
+            {fundedBalances.length === 0 ? (
+              <div className="rounded-lg bg-[#0D1117] border border-[#21262D] p-4 text-center">
+                <p className="text-sm text-[#E6EDF3] mb-1">No funds available to allocate</p>
+                <p className="text-xs text-[#8B949E] mb-3">Deposit into your wallet first, then choose which asset to copy with.</p>
+                <a href="/wallet"><Button size="sm" variant="outline">Go to Wallet</Button></a>
+              </div>
+            ) : (
+              <>
+                {/* Choose which funded asset to allocate from */}
+                <div>
+                  <label className="text-xs text-[#8B949E] font-medium mb-1.5 block">Allocate From</label>
+                  <div className="flex flex-wrap gap-2">
+                    {fundedBalances.map((b) => (
+                      <button
+                        key={b.symbol}
+                        onClick={() => setCopyAsset(b.symbol)}
+                        className={cn('flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition-all',
+                          copyAsset === b.symbol ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'border-[#21262D] text-[#8B949E] hover:border-[#30363D]')}
+                      >
+                        <AssetIcon symbol={b.symbol} fallback={b.icon} size={20} />
+                        {b.symbol}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-medium text-[#8B949E]">Allocated Amount</label>
+                    <button className="text-xs text-amber-400" onClick={() => setAllocation(String(selectedBalance?.available ?? 0))}>
+                      Available: {selectedBalance?.available.toFixed(4) ?? 0} {copyAsset} · Max
+                    </button>
+                  </div>
+                  <Input type="number" value={allocation} onChange={(e) => setAllocation(e.target.value)} placeholder="0.00" suffix={copyAsset} />
+                </div>
+
+                <div className="flex items-start gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                  <Info size={13} className="shrink-0 mt-0.5" />
+                  Simulated performance shown does not guarantee future results. Copy trading carries risk of loss.
+                </div>
+                <Button fullWidth size="lg" isLoading={submitting} onClick={copy}>Confirm &amp; Start Copying</Button>
+              </>
+            )}
           </div>
         )}
       </Modal>

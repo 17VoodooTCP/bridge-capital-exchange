@@ -1,11 +1,13 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { assertNotHeld } from '../../common/account.util';
 
 @Injectable()
 export class TradingService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createOrder(userId: string, dto: { symbol: string; side: 'BUY' | 'SELL'; type: 'MARKET' | 'LIMIT' | 'STOP_LIMIT' | 'STOP_MARKET'; amount: number; price?: number }) {
+    await assertNotHeld(this.prisma, userId);
     if (dto.amount <= 0) throw new BadRequestException('Amount must be positive');
     if (dto.type !== 'MARKET' && !dto.price) throw new BadRequestException('Price required for non-market orders');
 

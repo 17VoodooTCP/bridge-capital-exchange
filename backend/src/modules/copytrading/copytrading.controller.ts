@@ -51,6 +51,22 @@ export class CopyTradingController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @Get('admin/positions')
+  adminPositions(@Query('userId') userId?: string) {
+    return this.copy.adminListPositions(userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @Patch('admin/positions/:id/pnl')
+  adjustPnl(@Param('id') id: string, @Body() body: { pnl: number }) {
+    return this.copy.adjustPnl(id, body.pnl);
+  }
+
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('positions')
   positions(@CurrentUser('userId') userId: string) {

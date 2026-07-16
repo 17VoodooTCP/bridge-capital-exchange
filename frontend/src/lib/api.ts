@@ -85,6 +85,16 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const path: string = original?.url || '';
 
+    // Held account tried a transaction — surface the reason + support modal.
+    if (status === 403 && error.response?.data?.code === 'ACCOUNT_HELD') {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('account-held', { detail: error.response.data.reason || '' }),
+        );
+      }
+      return Promise.reject(error);
+    }
+
     if (status === 401 && !path.includes('/auth/') && !original?._retried) {
       original._retried = true;
       if (!refreshInflight) refreshInflight = doRefresh().finally(() => { refreshInflight = null; });

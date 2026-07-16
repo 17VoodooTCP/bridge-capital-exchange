@@ -11,6 +11,7 @@ export interface User {
   role: UserRole;
   kycStatus: KYCStatus;
   isHeld: boolean;
+  holdReason?: string | null;
   antiPhishingCode?: string;
   twoFactorEnabled: boolean;
   country?: string;

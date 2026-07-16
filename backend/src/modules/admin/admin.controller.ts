@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -35,6 +35,11 @@ export class AdminController {
   @Patch('users/:id/hold')
   hold(@CurrentUser('userId') adminId: string, @Param('id') id: string, @Body() body: { reason?: string }, @Req() req: any) {
     return this.admin.toggleHold(adminId, id, body?.reason, req.ip);
+  }
+
+  @Delete('users/:id')
+  deleteUser(@CurrentUser('userId') adminId: string, @Param('id') id: string, @Req() req: any) {
+    return this.admin.deleteUser(adminId, id, req.ip);
   }
 
   @Get('transactions')

@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { assertNotHeld } from '../../common/account.util';
 
 @Injectable()
 export class EarnService {
@@ -10,6 +11,7 @@ export class EarnService {
   }
 
   async stake(userId: string, dto: { planId: string; amount: number }) {
+    await assertNotHeld(this.prisma, userId);
     const plan = await this.prisma.stakingPlan.findUnique({ where: { id: dto.planId } });
     if (!plan) throw new NotFoundException('Staking plan not found');
     if (dto.amount < Number(plan.minAmount)) {

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { AccountHeldModal } from '@/components/layout/AccountHeldModal';
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 import { API_BASE_URL } from '@/lib/constants';
@@ -60,6 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
       <MobileNav />
+      <AccountHeldModal />
     </div>
   );
 }

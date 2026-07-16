@@ -43,8 +43,7 @@ export class AuthService {
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
 
-    if (user.isHeld) throw new UnauthorizedException('Account on hold. Contact support.');
-
+    // Held accounts CAN sign in and browse — transactions are what's blocked.
     if (user.twoFactorEnabled && !dto.twoFactorCode) {
       throw new UnauthorizedException('2FA_REQUIRED');
     }
@@ -149,7 +148,7 @@ export class AuthService {
     return this.issueTokens(user);
   }
 
-  private async issueTokens(user: { id: string; email: string; role: string; name: string; kycStatus: string; isHeld: boolean; twoFactorEnabled: boolean }) {
+  private async issueTokens(user: { id: string; email: string; role: string; name: string; kycStatus: string; isHeld: boolean; holdReason?: string | null; twoFactorEnabled: boolean }) {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = await this.jwt.signAsync(payload, {
       secret: process.env.JWT_SECRET || 'development_jwt_secret',
@@ -173,6 +172,7 @@ export class AuthService {
         role: user.role,
         kycStatus: user.kycStatus,
         isHeld: user.isHeld,
+        holdReason: user.holdReason ?? null,
         twoFactorEnabled: user.twoFactorEnabled,
       },
     };

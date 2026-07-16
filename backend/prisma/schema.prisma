@@ -299,7 +299,8 @@ model CopyPosition {
   id          String   @id @default(uuid())
   userId      String
   traderId    String
-  allocation  Float    @default(0) // amount (USDT) allocated to copy
+  asset       String   @default("USDT") // which wallet asset the allocation came from
+  allocation  Float    @default(0) // amount allocated to copy
   status      String   @default("ACTIVE") // ACTIVE | STOPPED
   pnl         Float    @default(0)
   startedAt   DateTime @default(now())

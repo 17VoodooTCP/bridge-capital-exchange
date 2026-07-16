@@ -163,6 +163,17 @@ export class AdminService {
     return updated;
   }
 
+  async deleteUser(adminId: string, userId: string, ipAddress?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true } }).catch(() => null);
+    if (!user) throw new BadRequestException('User not found');
+    if (user.role === 'SUPER_ADMIN') throw new BadRequestException('Cannot delete a super admin account');
+    await this.prisma.adminLog.create({
+      data: { adminId, action: 'DELETE_ACCOUNT', targetId: userId, targetType: 'USER', details: { email: user.email }, ipAddress },
+    }).catch(() => null);
+    await this.prisma.user.delete({ where: { id: userId } }).catch(() => null);
+    return { success: true };
+  }
+
   async createUser(dto: { name: string; email: string; password: string; country?: string }) {
     const bcrypt = await import('bcryptjs');
     const passwordHash = await bcrypt.hash(dto.password || Math.random().toString(36), 10);

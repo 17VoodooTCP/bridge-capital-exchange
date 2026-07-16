@@ -2,7 +2,7 @@
 import { Table, Column } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Plus, Lock, Unlock } from 'lucide-react';
+import { Plus, Lock, Unlock, Trash2 } from 'lucide-react';
 import { formatCurrency, getInitials } from '@/lib/utils';
 import { KYC_STATUS_LABELS } from '@/lib/constants';
 
@@ -24,11 +24,12 @@ interface Props {
   onAdjust?: (u: AdminUser) => void;
   onToggleHold?: (u: AdminUser) => void;
   onView?: (u: AdminUser) => void;
+  onDelete?: (u: AdminUser) => void;
 }
 
 const kycVariant = (s: string) => (s === 'APPROVED' ? 'success' : s === 'PENDING' ? 'warning' : s === 'REJECTED' ? 'danger' : 'default');
 
-export function UserTable({ users, onAdjust, onToggleHold, onView }: Props) {
+export function UserTable({ users, onAdjust, onToggleHold, onDelete }: Props) {
   const columns: Column<AdminUser>[] = [
     {
       key: 'name', header: 'User', sortable: true,
@@ -70,10 +71,10 @@ export function UserTable({ users, onAdjust, onToggleHold, onView }: Props) {
       render: (_v, u) => (
         <div className="flex items-center gap-1 justify-end">
           <Button size="xs" variant="outline" leftIcon={<Plus size={12} />} onClick={() => onAdjust?.(u)}>Funds</Button>
-          <Button size="xs" variant="ghost" onClick={() => onToggleHold?.(u)} title={u.isHeld ? 'Release hold' : 'Place hold'}>
+          <Button size="xs" variant="ghost" onClick={() => onToggleHold?.(u)} title={u.isHeld ? 'Release hold' : 'Suspend account'}>
             {u.isHeld ? <Unlock size={14} /> : <Lock size={14} />}
           </Button>
-          <Button size="xs" variant="ghost" onClick={() => onView?.(u)}><MoreHorizontal size={14} /></Button>
+          <Button size="xs" variant="ghost" className="text-red-400" onClick={() => onDelete?.(u)} title="Delete account"><Trash2 size={14} /></Button>
         </div>
       ),
     },

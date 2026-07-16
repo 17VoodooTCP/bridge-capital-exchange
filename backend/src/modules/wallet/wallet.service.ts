@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { assertNotHeld } from '../../common/account.util';
 
 @Injectable()
 export class WalletService {
@@ -14,6 +15,7 @@ export class WalletService {
   }
 
   async deposit(userId: string, dto: { asset: string; amount: number; network?: string; txHash?: string }) {
+    await assertNotHeld(this.prisma, userId);
     const tx = await this.prisma.transaction.create({
       data: {
         userId,
@@ -40,6 +42,7 @@ export class WalletService {
   }
 
   async withdraw(userId: string, dto: { asset: string; amount: number; toAddress: string; network: string }) {
+    await assertNotHeld(this.prisma, userId);
     if (!dto.toAddress) throw new BadRequestException('Recipient address required');
     if (dto.amount <= 0) throw new BadRequestException('Amount must be positive');
 
