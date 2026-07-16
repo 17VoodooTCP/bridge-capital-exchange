@@ -497,15 +497,15 @@ export default function LandingPage() {
               </div>
             </div>
             {[
-              { h: 'About', links: ['About Us', 'Careers', 'Press Room', 'Announcements', 'Risk Disclosure'] },
-              { h: 'Services', links: ['One-Click Buy', 'P2P Trading', 'Referral Program', 'Institutional Services', 'Listing Application'] },
-              { h: 'Support', links: ['Help Center', 'Submit a Case', 'User Feedback', 'Trading Fees', 'API Docs'] },
-              { h: 'Products', links: ['Trade', 'Derivatives', 'Earn', 'Stocks & ETFs', 'BCE Card'] },
+              { h: 'About', links: [['About Us', '/about'], ['Careers', '/careers'], ['Press Room', '/about#press'], ['Announcements', '/about#announcements'], ['Risk Disclosure', '/legal#risk']] },
+              { h: 'Services', links: [['Trade', '/trade'], ['Earn', '/earn'], ['Copy Trading', '/copy-trading'], ['Stocks', '/stocks'], ['ETFs', '/etfs']] },
+              { h: 'Support', links: [['Help Center', '/help'], ['Contact Us', '/contact'], ['Trading Fees', '/fees'], ['Terms of Service', '/legal#terms'], ['Privacy Policy', '/legal#privacy']] },
+              { h: 'Products', links: [['Markets', '/markets'], ['Wallet', '/wallet'], ['News', '/news'], ['Settings', '/settings'], ['Support', '/support']] },
             ].map((col) => (
               <div key={col.h}>
                 <div className="font-semibold text-sm mb-4">{col.h}</div>
                 <ul className="space-y-2.5 text-xs text-[#8B949E]">
-                  {col.links.map((l) => <li key={l}><a href="#" className="hover:text-[#E6EDF3] transition-colors">{l}</a></li>)}
+                  {col.links.map(([label, href]) => <li key={label}><Link href={href} className="hover:text-[#E6EDF3] transition-colors">{label}</Link></li>)}
                 </ul>
               </div>
             ))}
