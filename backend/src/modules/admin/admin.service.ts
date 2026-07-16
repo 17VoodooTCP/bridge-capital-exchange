@@ -199,12 +199,26 @@ export class AdminService {
     return this.prisma.walletConfig.findMany().catch(() => []);
   }
 
-  upsertWalletConfig(dto: { asset: string; network: string; address: string; qrCodeUrl?: string; minDeposit?: number; maxWithdrawal?: number; isActive?: boolean }) {
+  upsertWalletConfig(dto: { asset: string; network: string; address: string; qrCodeUrl?: string; minDeposit?: number; maxWithdrawal?: number; confirmations?: number; isActive?: boolean }) {
+    const data = {
+      asset: dto.asset,
+      network: dto.network,
+      address: dto.address,
+      qrCodeUrl: dto.qrCodeUrl,
+      minDeposit: dto.minDeposit ?? 0,
+      maxWithdrawal: dto.maxWithdrawal ?? 0,
+      confirmations: dto.confirmations ?? 1,
+      isActive: dto.isActive ?? true,
+    };
     return this.prisma.walletConfig.upsert({
       where: { asset_network: { asset: dto.asset, network: dto.network } },
-      create: dto,
-      update: dto,
-    }).catch(() => ({ id: `wc-${Date.now()}`, ...dto }));
+      create: data,
+      update: data,
+    });
+  }
+
+  deleteWalletConfig(id: string) {
+    return this.prisma.walletConfig.delete({ where: { id } }).catch(() => ({ id, deleted: true }));
   }
 
   async reviewTransaction(adminId: string, txId: string, approve: boolean, ipAddress?: string) {

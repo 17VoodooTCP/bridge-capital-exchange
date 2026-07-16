@@ -10,6 +10,7 @@ import { AssetIcon } from '@/components/ui/AssetIcon';
 import { formatNumber, formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
+import { useWalletData } from '@/hooks/useWalletData';
 import type { StakingPlan } from '@/types';
 
 interface StakingCardProps {
@@ -24,11 +25,16 @@ export function StakingCard({ plan, stakedAmount = 0, earned = 0, className }: S
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const isStaked = stakedAmount > 0;
+  const { balances } = useWalletData();
+  const available = balances.find((b) => b.symbol === plan.symbol)?.available ?? 0;
 
   const handleStake = async () => {
     const num = parseFloat(amount);
     if (!num || num < plan.minAmount) {
       return toast.error(`Minimum stake is ${plan.minAmount} ${plan.symbol}`);
+    }
+    if (num > available) {
+      return toast.error(`Insufficient ${plan.symbol} balance. Available: ${available.toFixed(6)} ${plan.symbol}`);
     }
     setIsLoading(true);
     try {
@@ -175,15 +181,24 @@ export function StakingCard({ plan, stakedAmount = 0, earned = 0, className }: S
             </div>
           </div>
 
-          <Input
-            label={`Amount (${plan.symbol})`}
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder={`Min. ${plan.minAmount} ${plan.symbol}`}
-            suffix={plan.symbol}
-            hint={`Balance: 4.32 ETH` /* mock */}
-          />
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm font-medium text-[#8B949E]">Amount ({plan.symbol})</label>
+              <button type="button" className="text-xs text-amber-400" onClick={() => setAmount(String(available))}>
+                Available: {available.toFixed(6)} {plan.symbol} · Max
+              </button>
+            </div>
+            <Input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={`Min. ${plan.minAmount} ${plan.symbol}`}
+              suffix={plan.symbol}
+            />
+            {available <= 0 && (
+              <p className="text-xs text-amber-400 mt-1">You have no {plan.symbol}. Deposit first to stake.</p>
+            )}
+          </div>
 
           {parseFloat(amount) > 0 && (
             <div className="bg-[#111318] rounded-xl p-4 space-y-2 text-sm">

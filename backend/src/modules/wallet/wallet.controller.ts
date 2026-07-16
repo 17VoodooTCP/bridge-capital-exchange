@@ -40,4 +40,10 @@ export class WalletController {
   address(@Query('asset') asset: string, @Query('network') network: string) {
     return this.wallet.getDepositAddress(asset, network);
   }
+
+  // All active deposit configs the admin has set — every account fetches these
+  @Get('deposit-configs')
+  depositConfigs() {
+    return this.wallet.listActiveConfigs();
+  }
 }

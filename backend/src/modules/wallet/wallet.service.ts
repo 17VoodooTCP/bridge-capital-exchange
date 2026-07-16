@@ -85,4 +85,10 @@ export class WalletService {
   async getDepositAddress(asset: string, network: string) {
     return this.prisma.walletConfig.findFirst({ where: { asset, network, isActive: true } }).catch(() => null);
   }
+
+  async listActiveConfigs() {
+    return this.prisma.walletConfig
+      .findMany({ where: { isActive: true }, orderBy: [{ asset: 'asc' }, { network: 'asc' }] })
+      .catch(() => []);
+  }
 }

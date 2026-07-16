@@ -59,6 +59,9 @@ export class AdminController {
   @Post('wallet-configs')
   saveWallet(@Body() dto: any) { return this.admin.upsertWalletConfig(dto); }
 
+  @Delete('wallet-configs/:id')
+  deleteWallet(@Param('id') id: string) { return this.admin.deleteWalletConfig(id); }
+
   @Roles('SUPER_ADMIN')
   @Post('secure-access')
   secureAccess(@CurrentUser('userId') adminId: string, @Req() req: any) {
