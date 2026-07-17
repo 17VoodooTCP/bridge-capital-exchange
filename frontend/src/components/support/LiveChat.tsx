@@ -30,8 +30,19 @@ export function LiveChat({ className }: { className?: string }) {
   const [input, setInput] = useState('');
   const [attachment, setAttachment] = useState<{ dataUrl: string; name: string } | null>(null);
   const [sending, setSending] = useState(false);
+  const [otherTyping, setOtherTyping] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const lastTypingSent = useRef(0);
+
+  // Tell the server we're typing (throttled), so the agent sees the indicator
+  const pingTyping = useCallback(() => {
+    if (!ticketId) return;
+    const now = Date.now();
+    if (now - lastTypingSent.current < 1800) return;
+    lastTypingSent.current = now;
+    api.post(`/support/tickets/${ticketId}/typing`).catch(() => {});
+  }, [ticketId]);
 
   // Ensure a ticket exists, then poll its messages in real time
   useEffect(() => {
@@ -46,8 +57,12 @@ export function LiveChat({ className }: { className?: string }) {
           const r = await api.get<Msg[]>(`/support/tickets/${t.data.id}/messages`).catch(() => null);
           if (alive && r && Array.isArray(r.data)) setMessages(r.data);
         };
+        const pollTyping = async () => {
+          const r = await api.get<{ typing: boolean }>(`/support/tickets/${t.data.id}/typing`).catch(() => null);
+          if (alive && r) setOtherTyping(!!r.data?.typing);
+        };
         await poll();
-        timer = setInterval(poll, 3000);
+        timer = setInterval(() => { poll(); pollTyping(); }, 2500);
       } catch {
         /* offline — chat unavailable */
       }
@@ -55,7 +70,7 @@ export function LiveChat({ className }: { className?: string }) {
     return () => { alive = false; clearInterval(timer); };
   }, []);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, otherTyping]);
 
   const send = useCallback(async () => {
     if ((!input.trim() && !attachment) || !ticketId) return;
@@ -126,23 +141,44 @@ export function LiveChat({ className }: { className?: string }) {
             Hi {user?.name?.split(' ')[0] || 'there'} — send a message and our team will reply here in real time.
           </div>
         )}
-        {messages.map((m) => {
+        {messages.map((m, i) => {
           const mine = m.senderId === user?.id;
           const staff = m.sender?.role === 'ADMIN' || m.sender?.role === 'SUPPORT' || m.sender?.role === 'SUPER_ADMIN';
           const label = mine ? 'You' : m.sender?.name ? `${m.sender.name}${staff ? ' (Support)' : ''}` : 'Support';
+          // Only label the first message of a consecutive run from the same sender
+          const prev = messages[i - 1];
+          const showLabel = !prev || prev.senderId !== m.senderId;
           return (
-            <div key={m.id} className={cn('flex flex-col max-w-[80%]', mine ? 'ml-auto items-end' : 'items-start')}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-[#8B949E]">{label}</span>
-                <span className="text-xs text-[#6E7681]">{formatDate(m.createdAt, 'time')}</span>
-              </div>
-              <div className={cn('px-3.5 py-2.5 rounded-2xl text-sm', mine ? 'bg-amber-500 text-black rounded-tr-sm' : 'bg-[#21262D] text-[#E6EDF3] rounded-tl-sm')}>
-                {m.content && <div>{m.content}</div>}
+            <div key={m.id} className={cn('flex flex-col max-w-[78%]', mine ? 'ml-auto items-end' : 'items-start', showLabel ? 'mt-2' : 'mt-0.5')}>
+              {showLabel && (
+                <div className="flex items-center gap-2 mb-1 px-1">
+                  <span className="text-xs font-medium text-[#8B949E]">{label}</span>
+                  <span className="text-xs text-[#6E7681]">{formatDate(m.createdAt, 'time')}</span>
+                </div>
+              )}
+              <div className={cn(
+                'px-3.5 py-2 text-sm leading-snug',
+                mine
+                  ? 'bg-[#0A84FF] text-white rounded-[20px] rounded-br-[6px]'
+                  : 'bg-[#26262B] text-[#E6EDF3] rounded-[20px] rounded-bl-[6px]',
+              )}>
+                {m.content && <div className="whitespace-pre-wrap break-words">{m.content}</div>}
                 {m.fileUrl && renderAttachment(m.fileUrl, mine)}
               </div>
             </div>
           );
         })}
+
+        {/* iMessage-style typing indicator */}
+        {otherTyping && (
+          <div className="flex flex-col items-start mt-2">
+            <div className="bg-[#26262B] rounded-[20px] rounded-bl-[6px] px-4 py-3 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#8B949E] animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 rounded-full bg-[#8B949E] animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 rounded-full bg-[#8B949E] animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 
@@ -157,7 +193,7 @@ export function LiveChat({ className }: { className?: string }) {
       <div className="p-3 border-t border-[#21262D] flex items-center gap-2">
         <input ref={fileRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleFile} />
         <button onClick={() => fileRef.current?.click()} className="p-2 text-[#8B949E] hover:text-amber-400 transition-colors"><Paperclip size={18} /></button>
-        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder="Type your message..." className="flex-1 bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2 text-sm text-[#E6EDF3] outline-none focus:border-amber-500/50" />
+        <input value={input} onChange={(e) => { setInput(e.target.value); if (e.target.value.trim()) pingTyping(); }} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder="Message" className="flex-1 bg-[#111318] border border-[#21262D] rounded-full px-4 py-2 text-sm text-[#E6EDF3] outline-none focus:border-[#0A84FF]/60" />
         <Button size="md" isLoading={sending} onClick={send} className="!px-3"><Send size={16} /></Button>
       </div>
     </div>

@@ -39,8 +39,18 @@ export default function AdminSupportPage() {
   const [input, setInput] = useState('');
   const [attachment, setAttachment] = useState<{ dataUrl: string; name: string } | null>(null);
   const [sending, setSending] = useState(false);
+  const [otherTyping, setOtherTyping] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const lastTypingSent = useRef(0);
+
+  const pingTyping = () => {
+    if (!active) return;
+    const now = Date.now();
+    if (now - lastTypingSent.current < 1800) return;
+    lastTypingSent.current = now;
+    api.post(`/support/tickets/${active}/typing`).catch(() => {});
+  };
 
   const loadTickets = useCallback(async () => {
     const r = await api.get<Ticket[]>('/support/tickets').catch(() => null);
@@ -59,13 +69,15 @@ export default function AdminSupportPage() {
     const poll = async () => {
       const r = await api.get<Msg[]>(`/support/tickets/${active}/messages`).catch(() => null);
       if (alive && r && Array.isArray(r.data)) setMessages(r.data);
+      const ty = await api.get<{ typing: boolean }>(`/support/tickets/${active}/typing`).catch(() => null);
+      if (alive && ty) setOtherTyping(!!ty.data?.typing);
     };
     poll();
-    const t = setInterval(poll, 3000);
+    const t = setInterval(poll, 2500);
     return () => { alive = false; clearInterval(t); };
   }, [active]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, otherTyping]);
 
   const ticket = tickets.find((t) => t.id === active);
 
@@ -149,19 +161,30 @@ export default function AdminSupportPage() {
               <div className="py-16 text-center text-sm text-[#8B949E]">Pick a conversation on the left to view and reply.</div>
             ) : messages.length === 0 ? (
               <div className="py-16 text-center text-sm text-[#8B949E]">No messages yet in this conversation.</div>
-            ) : messages.map((m) => {
+            ) : messages.map((m, i) => {
               const mine = m.senderId === user?.id;
               const staff = m.sender?.role === 'ADMIN' || m.sender?.role === 'SUPPORT' || m.sender?.role === 'SUPER_ADMIN';
+              const prev = messages[i - 1];
+              const showLabel = !prev || prev.senderId !== m.senderId;
               return (
-                <div key={m.id} className={cn('flex flex-col max-w-[80%]', mine ? 'ml-auto items-end' : 'items-start')}>
-                  <span className="text-xs text-[#8B949E] mb-1">{mine ? 'You' : m.sender?.name || 'User'}{!mine && staff ? ' (Staff)' : ''} · {formatDate(m.createdAt, 'time')}</span>
-                  <div className={cn('px-3.5 py-2.5 rounded-2xl text-sm', mine ? 'bg-amber-500 text-black' : 'bg-[#21262D] text-[#E6EDF3]')}>
-                    {m.content && <div>{m.content}</div>}
+                <div key={m.id} className={cn('flex flex-col max-w-[78%]', mine ? 'ml-auto items-end' : 'items-start', showLabel ? 'mt-2' : 'mt-0.5')}>
+                  {showLabel && <span className="text-xs text-[#8B949E] mb-1 px-1">{mine ? 'You' : m.sender?.name || 'User'}{!mine && staff ? ' (Staff)' : ''} · {formatDate(m.createdAt, 'time')}</span>}
+                  <div className={cn('px-3.5 py-2 text-sm leading-snug', mine ? 'bg-[#0A84FF] text-white rounded-[20px] rounded-br-[6px]' : 'bg-[#26262B] text-[#E6EDF3] rounded-[20px] rounded-bl-[6px]')}>
+                    {m.content && <div className="whitespace-pre-wrap break-words">{m.content}</div>}
                     {m.fileUrl && renderAttachment(m.fileUrl, mine)}
                   </div>
                 </div>
               );
             })}
+            {otherTyping && ticket && (
+              <div className="flex flex-col items-start mt-2">
+                <div className="bg-[#26262B] rounded-[20px] rounded-bl-[6px] px-4 py-3 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#8B949E] animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-[#8B949E] animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-[#8B949E] animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
             <div ref={endRef} />
           </CardBody>
 
@@ -176,7 +199,7 @@ export default function AdminSupportPage() {
           <div className="p-3 border-t border-[#21262D] flex items-center gap-2">
             <input ref={fileRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleFile} />
             <button className="p-2 text-[#8B949E] hover:text-amber-400" onClick={() => fileRef.current?.click()} disabled={!ticket}><Paperclip size={18} /></button>
-            <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder={ticket ? 'Type a reply...' : 'Select a conversation'} disabled={!ticket} className="flex-1 bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2 text-sm outline-none focus:border-amber-500/50 disabled:opacity-50" />
+            <input value={input} onChange={(e) => { setInput(e.target.value); if (e.target.value.trim()) pingTyping(); }} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder={ticket ? 'Message' : 'Select a conversation'} disabled={!ticket} className="flex-1 bg-[#111318] border border-[#21262D] rounded-full px-4 py-2 text-sm outline-none focus:border-[#0A84FF]/60 disabled:opacity-50" />
             <Button size="md" isLoading={sending} onClick={send} disabled={!ticket} className="!px-3"><Send size={16} /></Button>
           </div>
         </Card>

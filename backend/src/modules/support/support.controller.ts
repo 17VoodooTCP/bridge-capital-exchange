@@ -42,4 +42,15 @@ export class SupportController {
   takeover(@Param('id') id: string, @CurrentUser('userId') userId: string) {
     return this.support.takeOver(id, userId);
   }
+
+  @Post('tickets/:id/typing')
+  typing(@Param('id') id: string, @CurrentUser('role') role: string) {
+    this.support.markTyping(id, role === 'USER' ? 'USER' : 'STAFF');
+    return { ok: true };
+  }
+
+  @Get('tickets/:id/typing')
+  getTyping(@Param('id') id: string, @CurrentUser('role') role: string) {
+    return { typing: this.support.isOtherTyping(id, role === 'USER' ? 'USER' : 'STAFF') };
+  }
 }

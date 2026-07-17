@@ -5,6 +5,25 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class SupportService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Ephemeral typing presence: ticketId -> { USER?: ts, STAFF?: ts }
+  private typing = new Map<string, { USER?: number; STAFF?: number }>();
+
+  markTyping(ticketId: string, role: string) {
+    const key = role === 'USER' ? 'USER' : 'STAFF';
+    const entry = this.typing.get(ticketId) || {};
+    entry[key] = Date.now();
+    this.typing.set(ticketId, entry);
+  }
+
+  /** Is the OTHER party (relative to the viewer) currently typing? */
+  isOtherTyping(ticketId: string, viewerRole: string): boolean {
+    const entry = this.typing.get(ticketId);
+    if (!entry) return false;
+    const otherKey = viewerRole === 'USER' ? 'STAFF' : 'USER';
+    const ts = entry[otherKey];
+    return !!ts && Date.now() - ts < 5000;
+  }
+
   getTickets(userId?: string) {
     return this.prisma.supportTicket.findMany({
       where: userId ? { userId } : undefined,
