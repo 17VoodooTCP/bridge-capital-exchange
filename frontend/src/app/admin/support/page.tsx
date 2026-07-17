@@ -76,11 +76,10 @@ export default function AdminSupportPage() {
       const fileUrl = attachment
         ? isImage(attachment.dataUrl) ? attachment.dataUrl : `${attachment.dataUrl}#name=${encodeURIComponent(attachment.name)}`
         : undefined;
-      await api.post(`/support/tickets/${active}/messages`, { content: input || (attachment ? `📎 ${attachment.name}` : ''), fileUrl });
+      const res = await api.post<Msg>(`/support/tickets/${active}/messages`, { content: input || (attachment ? `📎 ${attachment.name}` : ''), fileUrl });
+      if (res?.data?.id) setMessages((m) => (m.some((x) => x.id === res.data.id) ? m : [...m, res.data]));
       setInput('');
       setAttachment(null);
-      const r = await api.get<Msg[]>(`/support/tickets/${active}/messages`).catch(() => null);
-      if (r && Array.isArray(r.data)) setMessages(r.data);
     } catch {
       toast.error('Reply failed to send');
     } finally {

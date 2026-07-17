@@ -67,14 +67,17 @@ export function LiveChat({ className }: { className?: string }) {
           ? attachment.dataUrl
           : `${attachment.dataUrl}#name=${encodeURIComponent(attachment.name)}`
         : undefined;
-      await api.post(`/support/tickets/${ticketId}/messages`, {
+      const res = await api.post<Msg>(`/support/tickets/${ticketId}/messages`, {
         content: input || (attachment ? `📎 ${attachment.name}` : ''),
         fileUrl,
       });
+      // Optimistically append; the 3s poll will reconcile. No heavy refetch here,
+      // so a slow poll can't produce a false "failed" toast after a real send.
+      if (res?.data?.id) {
+        setMessages((m) => (m.some((x) => x.id === res.data.id) ? m : [...m, res.data]));
+      }
       setInput('');
       setAttachment(null);
-      const r = await api.get<Msg[]>(`/support/tickets/${ticketId}/messages`).catch(() => null);
-      if (r && Array.isArray(r.data)) setMessages(r.data);
     } catch {
       toast.error('Message failed to send');
     } finally {
