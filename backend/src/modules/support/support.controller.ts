@@ -21,6 +21,12 @@ export class SupportController {
     return this.support.createTicket(userId, dto);
   }
 
+  // Get (or lazily create) the current user's live-chat ticket
+  @Post('chat/ensure')
+  ensureTicket(@CurrentUser('userId') userId: string) {
+    return this.support.ensureTicket(userId);
+  }
+
   @Get('tickets/:id/messages')
   messages(@Param('id') id: string) {
     return this.support.getMessages(id);

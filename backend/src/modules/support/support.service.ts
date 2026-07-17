@@ -26,7 +26,24 @@ export class SupportService {
   }
 
   getMessages(ticketId: string) {
-    return this.prisma.chatMessage.findMany({ where: { ticketId }, orderBy: { createdAt: 'asc' } }).catch(() => []);
+    return this.prisma.chatMessage
+      .findMany({
+        where: { ticketId },
+        orderBy: { createdAt: 'asc' },
+        include: { sender: { select: { name: true, role: true } } },
+      })
+      .catch(() => []);
+  }
+
+  /** Returns the user's most recent open ticket, creating one if none exists. */
+  async ensureTicket(userId: string) {
+    const existing = await this.prisma.supportTicket
+      .findFirst({ where: { userId, status: { in: ['OPEN', 'IN_PROGRESS'] } }, orderBy: { updatedAt: 'desc' } })
+      .catch(() => null);
+    if (existing) return existing;
+    return this.prisma.supportTicket
+      .create({ data: { userId, subject: 'Live chat', category: 'General', priority: 'MEDIUM' } })
+      .catch(() => null);
   }
 
   takeOver(ticketId: string, adminId: string) {

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Bot, Send, User, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 
 interface BotMsg {
   id: number;
@@ -13,15 +14,17 @@ interface BotMsg {
 const QUICK_REPLIES = ['Check balance', 'Deposit help', 'Withdrawal status', 'Contact agent'];
 
 const BOT_RESPONSES: Record<string, string> = {
-  'Check balance': 'You can view your full balance under Wallet → Total Balance. Your current portfolio value is $72,338.63.',
+  'Check balance': 'You can view your full balance any time under Wallet → Total Balance, with a per-asset breakdown.',
   'Deposit help': 'To deposit, go to Wallet → Deposit, choose your asset and network, then send funds to the address shown. Deposits credit after network confirmations.',
   'Withdrawal status': 'Most withdrawals process within 30 minutes. You can track status under Wallet → Transaction History.',
   'Contact agent': "I'll connect you with a live support agent now. Please hold while I escalate your conversation.",
 };
 
 export function SupportBot({ onEscalate }: { onEscalate?: () => void }) {
+  const { user } = useAuthStore();
+  const firstName = user?.name?.split(' ')[0] || 'there';
   const [messages, setMessages] = useState<BotMsg[]>([
-    { id: 1, from: 'bot', text: "👋 Hi! I'm the BCE Support Bot. How can I help you today? Pick an option below or type your question." },
+    { id: 1, from: 'bot', text: `👋 Hi ${firstName}! I'm the Bridge Capital Support Bot. How can I help you today? Pick an option below or type your question.` },
   ]);
   const [input, setInput] = useState('');
 
