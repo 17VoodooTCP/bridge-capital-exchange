@@ -13,7 +13,8 @@ export class SupportController {
 
   @Get('tickets')
   tickets(@CurrentUser('userId') userId: string, @CurrentUser('role') role: string) {
-    return this.support.getTickets(role === 'ADMIN' || role === 'SUPPORT' ? undefined : userId);
+    const isStaff = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'SUPPORT';
+    return this.support.getTickets(isStaff ? undefined : userId);
   }
 
   @Post('tickets')
