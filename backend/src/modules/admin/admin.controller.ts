@@ -6,6 +6,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interceptor';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -14,10 +15,19 @@ import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interce
 @UseInterceptors(AuditLogInterceptor)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   @Get('stats')
   stats() { return this.admin.stats(); }
+
+  // Send the P2P order-completion email (branded, matches the reference design)
+  @Post('send-order-email')
+  sendOrderEmail(@Body() body: { to: string; name?: string; side?: 'Buy' | 'Sell'; orderId: string; createdAt?: string; fiatAmount: string; cryptoQuantity: string }) {
+    return this.notifications.sendOrderCompleted(body.to, body);
+  }
 
   @Get('users')
   users(@Query('q') q?: string, @Query('page') page?: string) {
