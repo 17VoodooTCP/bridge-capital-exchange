@@ -76,6 +76,12 @@ export function useWalletData() {
 
   useEffect(() => {
     refresh();
+    // Poll so admin balance changes appear without a manual refresh, and
+    // refetch whenever the tab regains focus.
+    const t = setInterval(refresh, 15000);
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    return () => { clearInterval(t); window.removeEventListener('focus', onFocus); };
   }, [refresh]);
 
   // Merge raw balances with live market prices for USD values

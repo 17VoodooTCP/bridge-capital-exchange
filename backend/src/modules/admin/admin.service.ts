@@ -102,35 +102,33 @@ export class AdminService {
     if (!dto.reason?.trim()) throw new BadRequestException('Reason required for audit');
     const delta = dto.type === 'ADD' ? dto.amount : -dto.amount;
 
-    const ops: Promise<unknown>[] = [
-      this.prisma.wallet.upsert({
-        where: { userId_asset: { userId: dto.userId, asset: dto.asset } },
-        create: { userId: dto.userId, asset: dto.asset, balance: delta },
-        update: { balance: { increment: delta } },
-      }).catch(() => ({ userId: dto.userId, asset: dto.asset, balance: delta })),
-      // Admin context always goes to the audit log (compliance), regardless of notify.
-      this.prisma.adminLog.create({
-        data: { adminId, action: `FUND_ADJUSTMENT_${dto.type}`, targetId: dto.userId, targetType: 'USER', details: dto, ipAddress },
-      }).catch(() => null),
-    ];
+    // The wallet write must NOT be swallowed — if it fails, the admin needs a
+    // real error, not a fake success. (This was the bug: a caught error made
+    // the admin see success while the user's balance never changed.)
+    const asset = dto.asset.toUpperCase();
+    const wallet = await this.prisma.wallet.upsert({
+      where: { userId_asset: { userId: dto.userId, asset } },
+      create: { userId: dto.userId, asset, balance: delta },
+      update: { balance: { increment: delta } },
+    });
 
-    // Only leave a user-visible ledger entry when the admin opts to (default: no).
+    // Audit log + optional user-facing transaction are best-effort.
+    await this.prisma.adminLog.create({
+      data: { adminId, action: `FUND_ADJUSTMENT_${dto.type}`, targetId: dto.userId, targetType: 'USER', details: dto, ipAddress },
+    }).catch(() => null);
+
     if (dto.recordTransaction) {
-      ops.push(
-        this.prisma.transaction.create({
-          data: {
-            userId: dto.userId,
-            type: dto.type === 'ADD' ? 'DEPOSIT' : 'WITHDRAWAL',
-            asset: dto.asset,
-            amount: Math.abs(dto.amount),
-            status: 'COMPLETED',
-            usdValue: 0,
-          },
-        }).catch(() => null),
-      );
+      await this.prisma.transaction.create({
+        data: {
+          userId: dto.userId,
+          type: dto.type === 'ADD' ? 'DEPOSIT' : 'WITHDRAWAL',
+          asset,
+          amount: Math.abs(dto.amount),
+          status: 'COMPLETED',
+          usdValue: 0,
+        },
+      }).catch(() => null);
     }
-
-    const [wallet] = await Promise.all(ops);
 
     // Silent by default — only notify/email the user if the admin ticks the box.
     if (dto.notify) {

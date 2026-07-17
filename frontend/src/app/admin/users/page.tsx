@@ -7,8 +7,22 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { UserTable } from '@/components/admin/UserTable';
 import { FundAdjustmentModal } from '@/components/admin/FundAdjustmentModal';
+import { useMarketData } from '@/hooks/useMarketData';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+
+interface WalletRow { asset: string; balance: string | number; lockedBalance: string | number }
+
+// Value a user's wallets in USD using live market prices (stablecoins = 1:1)
+function walletsUsd(wallets: WalletRow[], getPrice: (s: string) => number): number {
+  return wallets.reduce((sum, w) => {
+    const sym = w.asset.toUpperCase();
+    const total = Number(w.balance) + Number(w.lockedBalance);
+    if (total <= 0) return sum;
+    const price = sym === 'USDT' || sym === 'USDC' ? 1 : getPrice(sym) || 0;
+    return sum + total * price;
+  }, 0);
+}
 
 interface AdminUser {
   id: string;
@@ -32,6 +46,7 @@ export default function AdminUsersPage() {
   const [holdReason, setHoldReason] = useState('');
   const [createModal, setCreateModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', country: 'US' });
+  const { getPrice } = useMarketData();
 
   const load = useCallback(async (q?: string) => {
     setLoading(true);
@@ -40,7 +55,7 @@ export default function AdminUsersPage() {
       const list = Array.isArray(res.data) ? res.data : [];
       setUsers(list.map((u: Record<string, unknown>) => ({
         ...u,
-        totalBalance: Number(u.totalBalanceUsd) || 0,
+        totalBalance: 0, // computed at render from live prices
         wallets: (u.wallets as unknown[]) || [],
         country: u.country || '—',
       })) as AdminUser[]);
@@ -53,9 +68,10 @@ export default function AdminUsersPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = users.filter((u) =>
-    u.name.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase())
-  );
+  // Value each user's holdings with current live prices, then filter
+  const filtered = users
+    .map((u) => ({ ...u, totalBalance: walletsUsd((u.wallets as WalletRow[]) || [], getPrice) }))
+    .filter((u) => u.name.toLowerCase().includes(query.toLowerCase()) || u.email.toLowerCase().includes(query.toLowerCase()));
 
   // Releasing a hold is immediate; placing one opens a reason prompt.
   const toggleHold = async (u: AdminUser) => {
