@@ -1,7 +1,7 @@
 import { PublicShell } from '@/components/layout/PublicShell';
 import { Shield, Globe, TrendingUp, Users } from 'lucide-react';
 
-export const metadata = { title: 'About — Bridge Capital' };
+export const metadata = { title: 'About — Bridge Capital', alternates: { canonical: '/about' } };
 
 const stats = [
   { v: '2.4M+', l: 'Registered users' },

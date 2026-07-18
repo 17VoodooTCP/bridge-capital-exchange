@@ -1,7 +1,7 @@
 import { PublicShell } from '@/components/layout/PublicShell';
 import { Mail, MessageSquare, Building2 } from 'lucide-react';
 
-export const metadata = { title: 'Contact — Bridge Capital' };
+export const metadata = { title: 'Contact — Bridge Capital', alternates: { canonical: '/contact' } };
 
 export default function ContactPage() {
   return (

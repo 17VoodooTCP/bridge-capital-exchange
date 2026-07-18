@@ -1,7 +1,7 @@
 import { PublicShell } from '@/components/layout/PublicShell';
 import { MapPin } from 'lucide-react';
 
-export const metadata = { title: 'Careers — Bridge Capital' };
+export const metadata = { title: 'Careers — Bridge Capital', alternates: { canonical: '/careers' } };
 
 const roles = [
   { t: 'Senior Backend Engineer', team: 'Engineering', loc: 'Remote' },

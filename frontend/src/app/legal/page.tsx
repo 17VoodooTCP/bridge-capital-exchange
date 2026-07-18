@@ -1,6 +1,6 @@
 import { PublicShell } from '@/components/layout/PublicShell';
 
-export const metadata = { title: 'Legal — Bridge Capital' };
+export const metadata = { title: 'Legal — Bridge Capital', alternates: { canonical: '/legal' } };
 
 export default function LegalPage() {
   return (

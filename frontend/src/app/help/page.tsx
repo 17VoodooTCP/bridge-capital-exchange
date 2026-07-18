@@ -1,7 +1,7 @@
 import { PublicShell } from '@/components/layout/PublicShell';
 import { FAQ_ITEMS } from '@/lib/constants';
 
-export const metadata = { title: 'Help Center — Bridge Capital' };
+export const metadata = { title: 'Help Center — Bridge Capital', alternates: { canonical: '/help' } };
 
 export default function HelpPage() {
   return (

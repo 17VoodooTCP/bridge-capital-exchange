@@ -1,6 +1,6 @@
 import { PublicShell } from '@/components/layout/PublicShell';
 
-export const metadata = { title: 'Fees — Bridge Capital' };
+export const metadata = { title: 'Fees — Bridge Capital', alternates: { canonical: '/fees' } };
 
 const rows = [
   ['Spot trading (maker)', '0.10%', 'Charged on the traded amount when your order adds liquidity.'],

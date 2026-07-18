@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     'Enterprise-grade multi-asset trading platform. Trade Bitcoin, Ethereum, US stocks, and ETFs with institutional-grade security and real-time market data.',
   keywords: ['crypto', 'trading', 'stocks', 'ETFs', 'bitcoin', 'ethereum', 'investment'],
   manifest: '/manifest.json',
+  // Self-referencing canonical for the homepage (apex is the canonical host).
+  // Subpages override this with their own path.
+  alternates: { canonical: '/' },
   openGraph: {
     title: 'Bridge Capital — Trade Crypto, Stocks & ETFs',
     description: 'Enterprise-grade multi-asset trading platform.',
