@@ -121,8 +121,15 @@ export const authApi = {
   login: (credentials: AuthCredentials) =>
     api.post<AuthResponse>('/auth/login', credentials).then((r) => r.data),
 
+  // Registration no longer signs the user in — it returns a verification prompt
   register: (payload: RegisterPayload) =>
-    api.post<AuthResponse>('/auth/register', payload).then((r) => r.data),
+    api.post<{ requiresVerification: boolean; email: string }>('/auth/register', payload).then((r) => r.data),
+
+  verifyEmail: (email: string, code: string) =>
+    api.post<AuthResponse>('/auth/verify-email', { email, code }).then((r) => r.data),
+
+  resendVerification: (email: string) =>
+    api.post('/auth/resend-verification', { email }).then((r) => r.data),
 
   logout: () => api.post('/auth/logout').then((r) => r.data),
 

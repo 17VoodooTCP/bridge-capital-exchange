@@ -31,6 +31,16 @@ export class AuthController {
     return this.auth.login(dto, { ip: clientIp(req), userAgent: req.headers['user-agent'] });
   }
 
+  @Post('verify-email')
+  verifyEmail(@Body() body: { email: string; code: string }, @Req() req: any) {
+    return this.auth.verifyEmail(body.email, body.code, { ip: clientIp(req), userAgent: req.headers['user-agent'] });
+  }
+
+  @Post('resend-verification')
+  resendVerification(@Body() body: { email: string }) {
+    return this.auth.resendVerification(body.email);
+  }
+
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('logout')

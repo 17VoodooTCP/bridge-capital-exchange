@@ -253,11 +253,23 @@ export class NotificationsService {
 </div>`;
   }
 
-  // Clean, white transactional layout with the Bridge Capital logo header —
-  // used for every notification email (welcome, deposits, withdrawals, KYC…).
-  private emailHtml(name: string, title: string, body: string) {
+  /**
+   * The one branded email layout for the entire platform — white background,
+   * logo header, greeting, body, call-to-action button. Every outbound email
+   * (welcome, OTP, password reset, deposits, KYC…) renders through this.
+   * `cta` overrides the default "Open Dashboard" button.
+   */
+  emailHtml(
+    name: string,
+    title: string,
+    body: string,
+    cta?: { label: string; url: string } | null,
+  ) {
     const site = (process.env.FRONTEND_URL || 'https://bridgecapitalv1.com').replace(/\/$/, '');
     const logo = `${site}/logo.svg`;
+    const button = cta === null
+      ? ''
+      : `<a href="${cta?.url || `${site}/dashboard`}" style="display:inline-block;background:#E8B547;color:#0A1A3A;text-decoration:none;font-weight:700;font-size:14px;padding:11px 26px;border-radius:8px">${cta?.label || 'Open Dashboard'}</a>`;
     return `
 <div style="background:#ffffff;padding:0;margin:0;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a">
   <div style="max-width:600px;margin:0 auto;padding:40px 28px">
@@ -274,7 +286,7 @@ export class NotificationsService {
       <h2 style="margin:0 0 18px;font-size:19px;color:#0A1A3A">${title}</h2>
       <p style="margin:0 0 16px">Dear ${name},</p>
       <p style="margin:0 0 24px">${body}</p>
-      <a href="${site}/dashboard" style="display:inline-block;background:#E8B547;color:#0A1A3A;text-decoration:none;font-weight:700;font-size:14px;padding:11px 26px;border-radius:8px">Open Dashboard</a>
+      ${button}
     </div>
     <div style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#999;line-height:1.5;text-align:center">
       This is an automated message from Bridge Capital. If you did not expect this email, contact support@bridgecapitalv1.com.

@@ -26,8 +26,19 @@ export function useAuth() {
   const register = useCallback(
     async (payload: RegisterPayload) => {
       const data = await authApi.register(payload);
+      // Account exists but is inert until the emailed OTP is confirmed
+      toast.success('Account created — check your email for the verification code.');
+      router.push(`/verify-email?email=${encodeURIComponent(payload.email)}`);
+      return data;
+    },
+    [router]
+  );
+
+  const verifyEmail = useCallback(
+    async (email: string, code: string) => {
+      const data = await authApi.verifyEmail(email, code);
       setAuth(data.user, data.accessToken, data.refreshToken);
-      toast.success('Account created successfully!');
+      toast.success('Email verified — welcome to Bridge Capital!');
       router.push('/dashboard');
       return data;
     },
@@ -51,6 +62,7 @@ export function useAuth() {
     isAuthenticated,
     login,
     register,
+    verifyEmail,
     logout,
     updateUser,
   };

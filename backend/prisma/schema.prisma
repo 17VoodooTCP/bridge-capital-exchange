@@ -87,6 +87,9 @@ model User {
   refreshTokenHash String?
   resetTokenHash   String?
   resetTokenExpires DateTime?
+  emailVerified    Boolean   @default(false)
+  emailOtpHash     String?
+  emailOtpExpires  DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   lastLoginAt      DateTime?

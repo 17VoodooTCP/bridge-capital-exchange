@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Mail, Lock, Shield, ArrowRight, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
@@ -12,6 +13,7 @@ import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [twoFA, setTwoFA] = useState('');
@@ -29,8 +31,15 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login({ email, password, twoFactorCode: twoFA || undefined });
-    } catch {
-      toast.error('Invalid email or password.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      if (msg === 'EMAIL_NOT_VERIFIED') {
+        // Credentials were right — the account just isn't activated yet.
+        toast('Please verify your email to continue. We sent you a new code.', { icon: '✉️' });
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
+      toast.error(msg === '2FA_REQUIRED' ? 'Enter your 2FA code.' : 'Invalid email or password.');
     } finally {
       setLoading(false);
     }

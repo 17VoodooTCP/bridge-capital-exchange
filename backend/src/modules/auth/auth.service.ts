@@ -22,19 +22,76 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: { name: dto.name, email: dto.email, passwordHash, country: dto.country },
     });
+
+    // No session and no tokens yet — the account is unusable until the emailed
+    // OTP is confirmed.
+    await this.sendEmailOtp(user.id, user.email, user.name);
+    await this.notifications.notifyAdmin(
+      'New user registration',
+      `${user.name} (${user.email}) just created an account${dto.country ? ` from ${dto.country}` : ''} and is pending email verification.`,
+    );
+    return { requiresVerification: true, email: user.email };
+  }
+
+  /** Generates a 6-digit OTP, stores it hashed, and emails it. */
+  private async sendEmailOtp(userId: string, email: string, name: string) {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const emailOtpHash = await bcrypt.hash(code, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { emailOtpHash, emailOtpExpires: new Date(Date.now() + 15 * 60 * 1000) },
+    });
+
+    await this.notifications.sendEmail(
+      email,
+      'Verify your email',
+      this.notifications.emailHtml(
+        name,
+        'Verify your email address',
+        `Welcome to Bridge Capital. Use the verification code below to activate your account — it expires in 15 minutes.
+        <br/><br/>
+        <span style="display:inline-block;background:#f6f7f9;border:1px solid #e4e7eb;border-radius:10px;padding:14px 26px;font-size:30px;font-weight:800;letter-spacing:8px;color:#0A1A3A">${code}</span>
+        <br/><br/>
+        If you didn't create an account, you can safely ignore this email.`,
+        null,
+      ),
+    );
+  }
+
+  /** Confirms the OTP and, on success, activates the account and signs the user in. */
+  async verifyEmail(email: string, code: string, meta?: { ip?: string; userAgent?: string }) {
+    const user = await this.prisma.user.findUnique({ where: { email } }).catch(() => null);
+    if (!user) throw new UnauthorizedException('Invalid verification code');
+    if (user.emailVerified) throw new BadRequestException('This email is already verified. You can sign in.');
+    if (!user.emailOtpHash || !user.emailOtpExpires || user.emailOtpExpires < new Date()) {
+      throw new UnauthorizedException('That code has expired. Request a new one.');
+    }
+    const ok = await bcrypt.compare(String(code).trim(), user.emailOtpHash);
+    if (!ok) throw new UnauthorizedException('Invalid verification code');
+
+    const verified = await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true, emailOtpHash: null, emailOtpExpires: null, lastLoginAt: new Date() },
+    });
+
     await this.recordSession(user.id, meta);
     await this.notifications.notify(user.id, {
       title: 'Welcome to Bridge Capital 🎉',
-      body: 'Your account has been created successfully. Complete KYC verification in Settings to unlock deposits, withdrawals, and full trading limits.',
+      body: 'Your email has been verified and your account is active. Complete KYC verification in Settings to unlock deposits, withdrawals, and full trading limits.',
       type: 'ACCOUNT',
       email: true,
       event: 'welcome',
     });
-    await this.notifications.notifyAdmin(
-      'New user registration',
-      `${user.name} (${user.email}) just created an account${dto.country ? ` from ${dto.country}` : ''}.`,
-    );
-    return this.issueTokens(user);
+    return this.issueTokens(verified);
+  }
+
+  /** Re-sends the OTP. Always resolves OK so accounts can't be enumerated. */
+  async resendVerification(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } }).catch(() => null);
+    if (user && !user.emailVerified) {
+      await this.sendEmailOtp(user.id, user.email, user.name);
+    }
+    return { success: true, message: 'If that account needs verification, a new code has been sent.' };
   }
 
   async login(dto: LoginDto, meta?: { ip?: string; userAgent?: string }) {
@@ -43,6 +100,13 @@ export class AuthService {
 
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
+
+    // Unverified signups can't sign in — resend the code and tell the client to
+    // route to the verification screen.
+    if (!user.emailVerified) {
+      await this.sendEmailOtp(user.id, user.email, user.name).catch(() => null);
+      throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
+    }
 
     // Held accounts CAN sign in and browse — transactions are what's blocked.
     if (user.twoFactorEnabled && !dto.twoFactorCode) {
@@ -123,12 +187,12 @@ export class AuthService {
       await this.notifications.sendEmail(
         email,
         'Reset your password',
-        `<div style="font-family:Arial,sans-serif;padding:24px;background:#0A0B0D;color:#E6EDF3">
-          <h2>Password reset requested</h2>
-          <p style="color:#8B949E">Hi ${user.name}, click the button below to set a new password. This link expires in 30 minutes.</p>
-          <a href="${link}" style="display:inline-block;background:#F59E0B;color:#000;font-weight:bold;padding:12px 24px;border-radius:10px;text-decoration:none;margin:16px 0">Reset Password</a>
-          <p style="color:#6E7681;font-size:12px">If you didn't request this, you can safely ignore this email.</p>
-        </div>`,
+        this.notifications.emailHtml(
+          user.name,
+          'Password reset requested',
+          `We received a request to reset your Bridge Capital password. Click the button below to choose a new one — this link expires in 30 minutes.<br/><br/>If you didn't request this, you can safely ignore this email and your password will stay the same.`,
+          { label: 'Reset Password', url: link },
+        ),
       );
     }
     return { success: true, message: 'If that email exists, a reset link has been sent.' };
