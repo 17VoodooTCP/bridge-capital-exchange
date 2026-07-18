@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, RefreshCw } from 'lucide-react';
+import { Search, Plus, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -46,6 +46,8 @@ export default function AdminUsersPage() {
   const [holdReason, setHoldReason] = useState('');
   const [createModal, setCreateModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', password: '', country: 'US' });
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; user?: AdminUser }>({ open: false });
+  const [deleting, setDeleting] = useState(false);
   const { getPrice } = useMarketData();
 
   const load = useCallback(async (q?: string) => {
@@ -99,15 +101,24 @@ export default function AdminUsersPage() {
     }
   };
 
-  const deleteUser = async (u: AdminUser) => {
-    if (!confirm(`Permanently delete ${u.name} (${u.email})? This removes their account, balances, and all history. This cannot be undone.`)) return;
+  // Opening the modal replaces the old window.confirm() — which the browser can
+  // permanently suppress once "don't show again" is ticked.
+  const deleteUser = (u: AdminUser) => setDeleteModal({ open: true, user: u });
+
+  const confirmDelete = async () => {
+    const u = deleteModal.user;
+    if (!u) return;
+    setDeleting(true);
     try {
       await api.delete(`/admin/users/${u.id}`);
       setUsers((list) => list.filter((x) => x.id !== u.id));
       toast.success(`Deleted ${u.name}. Action logged.`);
+      setDeleteModal({ open: false });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg || 'Delete failed.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -165,6 +176,19 @@ export default function AdminUsersPage() {
           <div className="flex gap-3">
             <Button variant="outline" fullWidth onClick={() => { setHoldModal({ open: false }); setHoldReason(''); }}>Cancel</Button>
             <Button variant="danger" fullWidth onClick={confirmHold}>Place Hold</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={deleteModal.open} onClose={() => setDeleteModal({ open: false })} title="Delete User Account" size="md">
+        <div className="p-6 space-y-4">
+          <div className="flex items-start gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+            <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+            <span>This permanently removes <span className="font-semibold">{deleteModal.user?.name}</span> ({deleteModal.user?.email}) — their account, balances, and all transaction history. <span className="font-semibold">This cannot be undone.</span></span>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" fullWidth onClick={() => setDeleteModal({ open: false })}>Cancel</Button>
+            <Button variant="danger" fullWidth isLoading={deleting} onClick={confirmDelete}>Delete Permanently</Button>
           </div>
         </div>
       </Modal>
