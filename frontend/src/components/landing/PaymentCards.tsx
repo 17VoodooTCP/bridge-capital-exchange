@@ -99,12 +99,14 @@ export function PaymentCards() {
           const i = idx % CARDS.length;
           return (
         // mr instead of a flex gap keeps every item the same width, so -50% loops exactly
-        <div key={idx} className="shrink-0 mr-5" style={{ perspective: '1200px' }}>
+        <div key={idx} className="shrink-0 mr-5" style={{ perspective: '1200px', WebkitPerspective: '1200px' }}>
           <div
             className="relative w-56 h-36"
             style={{
               transformStyle: 'preserve-3d',
+              WebkitTransformStyle: 'preserve-3d', // iOS Safari needs the prefix
               transform: `rotateY(${flipped ? 180 : 0}deg)`,
+              WebkitTransform: `rotateY(${flipped ? 180 : 0}deg)`,
               transition: 'transform 900ms cubic-bezier(.2,.75,.25,1)',
               transitionDelay: `${i * 130}ms`,
             }}

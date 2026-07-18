@@ -41,29 +41,36 @@ function Laurel({ cx, cy, side }: { cx: number; cy: number; side: -1 | 1 }) {
   );
 }
 
-/** Laurel trust badges — the same set used in the email footer. */
+/**
+ * Laurel trust badges — the same set used in the email footer.
+ * Each badge is its own SVG so they stack on phones; a single wide SVG scaled
+ * the text down to ~6px on a 375px screen, which was unreadable.
+ */
 export function TrustBadges({ className }: { className?: string }) {
-  const BW = 420, H = 310, W = BW * BADGES.length;
+  const BW = 420, H = 310;
+  const cx = BW / 2, cy = H / 2, startY = cy - 14;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className={cn('w-full max-w-3xl mx-auto h-auto', className)} role="img" aria-label="Multi-asset trading, verified accounts, live support">
-      {BADGES.map((b, i) => {
-        const cx = BW * i + BW / 2, cy = H / 2;
-        const startY = cy - 14;
-        return (
-          <g key={b.sub}>
-            <Laurel cx={cx} cy={cy} side={-1} />
-            <Laurel cx={cx} cy={cy} side={1} />
-            {b.title.map((line, k) => (
-              <text key={line} x={cx} y={startY + k * 30} textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontSize={24} fontWeight={700} letterSpacing={0.5} fill="currentColor">
-                {line}
-              </text>
-            ))}
-            <text x={cx} y={startY + b.title.length * 30 + 14} textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontSize={15} letterSpacing={1} fill="currentColor" opacity={0.6}>
-              {b.sub}
+    <div className={cn('grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto', className)}>
+      {BADGES.map((b) => (
+        <svg
+          key={b.sub}
+          viewBox={`0 0 ${BW} ${H}`}
+          className="w-full h-auto max-w-[290px] mx-auto sm:max-w-none"
+          role="img"
+          aria-label={`${b.title.join(' ')} — ${b.sub}`}
+        >
+          <Laurel cx={cx} cy={cy} side={-1} />
+          <Laurel cx={cx} cy={cy} side={1} />
+          {b.title.map((line, k) => (
+            <text key={line} x={cx} y={startY + k * 30} textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontSize={24} fontWeight={700} letterSpacing={0.5} fill="currentColor">
+              {line}
             </text>
-          </g>
-        );
-      })}
-    </svg>
+          ))}
+          <text x={cx} y={startY + b.title.length * 30 + 14} textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontSize={15} letterSpacing={1} fill="currentColor" opacity={0.6}>
+            {b.sub}
+          </text>
+        </svg>
+      ))}
+    </div>
   );
 }
