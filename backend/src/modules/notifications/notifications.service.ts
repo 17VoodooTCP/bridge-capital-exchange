@@ -208,7 +208,7 @@ export class NotificationsService {
     cryptoQuantity: string;
   }) {
     const site = process.env.FRONTEND_URL || 'https://bridgecapitalv1.com';
-    const logo = `${site.replace(/\/$/, '')}/logo.svg`;
+    const logo = `${site.replace(/\/$/, '')}/email/logo.png`;
     return `
 <div style="background:#ffffff;padding:0;margin:0;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a">
   <div style="max-width:600px;margin:0 auto;padding:40px 28px">
@@ -244,13 +244,62 @@ export class NotificationsService {
       <p style="margin:0 0 2px">Regards,</p>
       <p style="margin:0;font-weight:600">The Bridge Capital Team</p>
     </div>
-
-    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#999;line-height:1.5;text-align:center">
-      This is an automated message from Bridge Capital. Please do not reply directly.
-      Need help? Contact support@bridgecapitalv1.com
-    </div>
+    ${this.emailFooter()}
   </div>
 </div>`;
+  }
+
+  /**
+   * Shared marketing footer appended to every email: tagline, CTA, social tiles,
+   * quick links and the legal line. Uses hosted PNGs because Gmail and Outlook
+   * strip inline SVG.
+   */
+  private emailFooter() {
+    const site = (process.env.FRONTEND_URL || 'https://bridgecapitalv1.com').replace(/\/$/, '');
+    const gold = '#E8B547';
+    const navy = '#0A1A3A';
+    const address = process.env.COMPANY_ADDRESS || '';
+
+    const social = [
+      { name: 'X', file: 'x.png', url: process.env.SOCIAL_X || 'https://x.com/' },
+      { name: 'Instagram', file: 'instagram.png', url: process.env.SOCIAL_INSTAGRAM || 'https://instagram.com/' },
+      { name: 'YouTube', file: 'youtube.png', url: process.env.SOCIAL_YOUTUBE || 'https://youtube.com/' },
+    ]
+      .map(
+        (s) =>
+          `<a href="${s.url}" style="text-decoration:none;display:inline-block;margin:0 7px"><img src="${site}/email/${s.file}" alt="${s.name}" width="40" height="40" style="display:block;border:0;border-radius:9px" /></a>`,
+      )
+      .join('');
+
+    const links = [
+      ['FAQ', `${site}/help`],
+      ['Dashboard', `${site}/dashboard`],
+      ['Contact', `${site}/contact`],
+      ['Privacy Policy', `${site}/legal#privacy`],
+    ]
+      .map(([label, url]) => `<a href="${url}" style="color:#555;text-decoration:none;padding:0 12px;font-size:13px">${label}</a>`)
+      .join('<span style="color:#d9d9d9">|</span>');
+
+    return `
+    <div style="margin-top:36px;padding-top:34px;border-top:1px solid #eee;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:${navy};margin-bottom:24px;line-height:1.3">
+        For Every Trader, <span style="color:${gold}">Every Market</span>
+      </div>
+
+      <a href="${site}/dashboard" style="display:block;background:${gold};color:${navy};text-decoration:none;font-weight:700;font-size:16px;padding:16px 24px;border-radius:10px;margin:0 auto 28px">
+        Start Trading with Bridge Capital
+      </a>
+
+      <div style="margin-bottom:24px">${social}</div>
+
+      <div style="margin-bottom:18px">${links}</div>
+
+      <div style="font-size:12px;color:#999;line-height:1.7">
+        &copy; ${new Date().getFullYear()} Bridge Capital. All Rights Reserved.
+        ${address ? `<br/>${address}` : ''}
+        <br/>Support: <a href="mailto:support@bridgecapitalv1.com" style="color:#999">support@bridgecapitalv1.com</a>
+      </div>
+    </div>`;
   }
 
   /**
@@ -266,7 +315,7 @@ export class NotificationsService {
     cta?: { label: string; url: string } | null,
   ) {
     const site = (process.env.FRONTEND_URL || 'https://bridgecapitalv1.com').replace(/\/$/, '');
-    const logo = `${site}/logo.svg`;
+    const logo = `${site}/email/logo.png`;
     const button = cta === null
       ? ''
       : `<a href="${cta?.url || `${site}/dashboard`}" style="display:inline-block;background:#E8B547;color:#0A1A3A;text-decoration:none;font-weight:700;font-size:14px;padding:11px 26px;border-radius:8px">${cta?.label || 'Open Dashboard'}</a>`;
@@ -288,9 +337,7 @@ export class NotificationsService {
       <p style="margin:0 0 24px">${body}</p>
       ${button}
     </div>
-    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#999;line-height:1.5;text-align:center">
-      This is an automated message from Bridge Capital. If you did not expect this email, contact support@bridgecapitalv1.com.
-    </div>
+    ${this.emailFooter()}
   </div>
 </div>`;
   }
