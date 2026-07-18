@@ -24,6 +24,7 @@ interface Session {
   id: string;
   ipAddress?: string;
   country?: string;
+  city?: string;
   deviceType?: string;
   carrier?: string;
   createdAt: string;
@@ -376,7 +377,7 @@ export default function SettingsPage() {
                     <div className="text-xs text-[#8B949E]">
                       {hideActivity
                         ? `Hidden · ${formatDate(s.createdAt, 'relative')}`
-                        : [s.country, s.ipAddress, s.carrier, formatDate(s.createdAt, 'relative')].filter(Boolean).join(' · ')}
+                        : [[s.city, s.country].filter(Boolean).join(', '), s.ipAddress, s.carrier, formatDate(s.createdAt, 'relative')].filter(Boolean).join(' · ')}
                     </div>
                   </div>
                   {i !== 0 && (

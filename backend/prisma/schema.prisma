@@ -248,6 +248,7 @@ model LoginSession {
   userId     String
   ipAddress  String?
   country    String?
+  city       String?
   deviceType String?
   carrier    String?
   userAgent  String?

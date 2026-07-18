@@ -66,10 +66,15 @@ export class AuthService {
       .findFirst({ where: { userId, deviceType } })
       .catch(() => null);
 
+    const geo = await this.geolocate(meta?.ip);
+    const place = [geo.city, geo.country].filter(Boolean).join(', ');
+
     await this.prisma.loginSession.create({
       data: {
         userId,
         ipAddress: meta?.ip || null,
+        country: geo.country || null,
+        city: geo.city || null,
         deviceType,
         userAgent: ua || null,
       },
@@ -78,11 +83,27 @@ export class AuthService {
     if (!known) {
       await this.notifications.notify(userId, {
         title: 'Login from a new device',
-        body: `A sign-in to your account was detected from ${deviceType}${meta?.ip ? ` (IP ${meta.ip})` : ''}. If this wasn't you, change your password immediately and contact support.`,
+        body: `A sign-in to your account was detected from ${deviceType}${place ? ` in ${place}` : ''}${meta?.ip ? ` (IP ${meta.ip})` : ''}. If this wasn't you, change your password immediately and contact support.`,
         type: 'SECURITY',
         email: true,
         event: 'security',
       });
+    }
+  }
+
+  /** Best-effort IP → city/country lookup (free ip-api.com). Skips private IPs. */
+  private async geolocate(ip?: string): Promise<{ city?: string; country?: string }> {
+    if (!ip || /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd|localhost)/i.test(ip)) {
+      return {};
+    }
+    try {
+      const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,city,country`);
+      if (!res.ok) return {};
+      const data = (await res.json()) as { status?: string; city?: string; country?: string };
+      if (data.status !== 'success') return {};
+      return { city: data.city, country: data.country };
+    } catch {
+      return {};
     }
   }
 

@@ -14,6 +14,24 @@ export default function AdminSettingsPage() {
   const [mail, setMail] = useState({ to: '', name: '', subject: '', body: '', device: '', location: '', notifyInApp: true });
   const [template, setTemplate] = useState('custom');
   const [sending, setSending] = useState(false);
+  const [testTo, setTestTo] = useState('');
+  const [testing, setTesting] = useState(false);
+
+  const sendTest = async () => {
+    if (!testTo) return toast.error('Enter an email to test');
+    setTesting(true);
+    try {
+      const r = await api.post('/admin/test-email', { to: testTo });
+      const d = r.data || {};
+      if (d.sent) toast.success(`Test email delivered to ${testTo}`);
+      else if (d.skipped) toast.error('Skipped — RESEND_API_KEY is not set on the backend.');
+      else toast.error('Send failed — check the backend logs / Resend dashboard.');
+    } catch {
+      toast.error('Could not reach the mailer.');
+    } finally {
+      setTesting(false);
+    }
+  };
 
   // Per-event email notification toggles
   const [emailFlags, setEmailFlags] = useState<Record<string, boolean>>({});
@@ -159,6 +177,12 @@ export default function AdminSettingsPage() {
         <CardHeader><h3 className="font-semibold">Compose &amp; Send Email</h3></CardHeader>
         <CardBody className="space-y-4">
           <p className="text-sm text-[#8B949E]">Send any message to a user through the branded Bridge Capital email (logo + white layout). Pick a ready-made template or write your own. Works for every event — deposits, withdrawals, login alerts, KYC, P2P and more.</p>
+
+          {/* Delivery check */}
+          <div className="rounded-lg bg-[#111318] border border-[#21262D] p-3 flex flex-col sm:flex-row sm:items-end gap-3">
+            <Input containerClassName="flex-1" label="Verify email delivery" type="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="you@example.com" hint="Sends a branded test email and reports whether Resend delivered it." />
+            <Button variant="outline" isLoading={testing} onClick={sendTest}>Send test email</Button>
+          </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">

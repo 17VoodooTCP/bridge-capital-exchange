@@ -40,6 +40,16 @@ export class AdminController {
     return this.notifications.sendComposed(body.to, body);
   }
 
+  // Send a branded test email to verify Resend delivery end-to-end
+  @Post('test-email')
+  testEmail(@Body() body: { to: string }) {
+    return this.notifications.sendComposed(body.to, {
+      subject: 'Test email from Bridge Capital',
+      body: 'This is a test message confirming that transactional email delivery is working. If you received this, Resend is correctly configured and users will receive their automatic notifications.',
+      notifyInApp: false,
+    });
+  }
+
   // Send the P2P order-completion email (branded, matches the reference design)
   @Post('send-order-email')
   sendOrderEmail(@Body() body: { to: string; name?: string; side?: 'Buy' | 'Sell'; orderId: string; createdAt?: string; fiatAmount: string; cryptoQuantity: string }) {
