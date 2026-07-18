@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { KycService } from './kyc.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -32,6 +32,24 @@ export class KycController {
   @Roles('ADMIN', 'SUPER_ADMIN')
   @Get('pending')
   pending() { return this.kyc.listPending(); }
+
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @Get('limit-requests')
+  limitRequests(@Query('status') status?: string) {
+    return this.kyc.listLimitRequests(status || 'PENDING');
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @Patch('limit-requests/:id/review')
+  reviewLimitRequest(
+    @Param('id') id: string,
+    @CurrentUser('userId') reviewerId: string,
+    @Body() body: { approve: boolean; note?: string },
+  ) {
+    return this.kyc.reviewLimitRequest(id, body.approve, reviewerId, body.note);
+  }
 
   @UseGuards(RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')

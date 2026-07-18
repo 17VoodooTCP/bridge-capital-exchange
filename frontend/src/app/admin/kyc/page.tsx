@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, FileText, Check, X } from 'lucide-react';
-import { Card, CardBody, StatCard } from '@/components/ui/card';
+import { RefreshCw, FileText, Check, X, TrendingUp } from 'lucide-react';
+import { Card, CardBody, CardHeader, StatCard } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -18,6 +18,19 @@ interface KycDoc {
   user: { id: string; name: string; email: string; country?: string };
 }
 
+interface LimitRequest {
+  id: string;
+  currentLimit: string | number;
+  requestedLimit: string | number;
+  reason?: string;
+  status: string;
+  createdAt: string;
+  user: { name: string; email: string; kycStatus?: string };
+}
+
+const fmtUsd = (v: string | number) =>
+  Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
 const DOC_LABELS: Record<string, string> = {
   PASSPORT: 'Passport',
   DRIVERS_LICENSE: "Driver's License",
@@ -32,19 +45,50 @@ export default function AdminKYCPage() {
   const [note, setNote] = useState('');
   const [deciding, setDeciding] = useState(false);
 
+  // Withdrawal limit increase requests
+  const [limitReqs, setLimitReqs] = useState<LimitRequest[]>([]);
+  const [limitReview, setLimitReview] = useState<LimitRequest | null>(null);
+  const [limitNote, setLimitNote] = useState('');
+  const [decidingLimit, setDecidingLimit] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/kyc/pending');
-      setDocs(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      toast.error('Could not load KYC submissions.');
+      const [docsRes, limitsRes] = await Promise.allSettled([
+        api.get('/kyc/pending'),
+        api.get('/kyc/limit-requests'),
+      ]);
+      if (docsRes.status === 'fulfilled') setDocs(Array.isArray(docsRes.value.data) ? docsRes.value.data : []);
+      else toast.error('Could not load KYC submissions.');
+      if (limitsRes.status === 'fulfilled') setLimitReqs(Array.isArray(limitsRes.value.data) ? limitsRes.value.data : []);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const decideLimit = async (approve: boolean) => {
+    if (!limitReview) return;
+    if (!approve && !limitNote.trim()) return toast.error('Add a reason when declining');
+    setDecidingLimit(true);
+    try {
+      await api.patch(`/kyc/limit-requests/${limitReview.id}/review`, { approve, note: limitNote || undefined });
+      setLimitReqs((list) => list.filter((r) => r.id !== limitReview.id));
+      toast.success(
+        approve
+          ? `Limit raised to ${fmtUsd(limitReview.requestedLimit)} for ${limitReview.user.name}. User notified.`
+          : `Request declined for ${limitReview.user.name}. User notified.`,
+      );
+      setLimitReview(null);
+      setLimitNote('');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Review failed.');
+    } finally {
+      setDecidingLimit(false);
+    }
+  };
 
   const decide = async (approved: boolean) => {
     if (!review) return;
@@ -70,10 +114,38 @@ export default function AdminKYCPage() {
         <Button variant="outline" leftIcon={<RefreshCw size={15} />} onClick={load}>Refresh</Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 max-w-md">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-2xl">
         <StatCard label="Pending Review" value={docs.length} subValue={docs.length > 0 ? 'Action needed' : 'All clear'} subValueColor={docs.length > 0 ? 'text-amber-400' : 'text-green-400'} />
+        <StatCard label="Limit Requests" value={limitReqs.length} subValue={limitReqs.length > 0 ? 'Action needed' : 'All clear'} subValueColor={limitReqs.length > 0 ? 'text-amber-400' : 'text-green-400'} />
         <StatCard label="Avg. Review Time" value="< 24h" />
       </div>
+
+      {/* Withdrawal limit increase requests */}
+      <Card>
+        <CardHeader><h3 className="font-semibold flex items-center gap-2"><TrendingUp size={16} className="text-amber-400" /> Withdrawal Limit Requests</h3></CardHeader>
+        <CardBody className="p-0">
+          {loading ? (
+            <div className="p-5 space-y-3">{[1, 2].map((i) => <div key={i} className="skeleton h-14 rounded-lg" />)}</div>
+          ) : limitReqs.length === 0 ? (
+            <div className="py-12 text-center text-sm text-[#8B949E]">No pending limit increase requests.</div>
+          ) : (
+            limitReqs.map((r) => (
+              <div key={r.id} className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-[#21262D]/50 last:border-0 hover:bg-[#1C2128] transition-colors">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-xs font-bold text-black shrink-0">{getInitials(r.user.name)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium">{r.user.name}</div>
+                  <div className="text-xs text-[#8B949E] truncate">{r.user.email} · Requested {formatDate(r.createdAt, 'relative')}</div>
+                </div>
+                <div className="text-sm text-right">
+                  <div className="text-[#8B949E] text-xs">{fmtUsd(r.currentLimit)} →</div>
+                  <div className="font-semibold text-amber-400">{fmtUsd(r.requestedLimit)}</div>
+                </div>
+                <Button size="sm" onClick={() => setLimitReview(r)}>Review</Button>
+              </div>
+            ))
+          )}
+        </CardBody>
+      </Card>
 
       <Card>
         <CardBody className="p-0">
@@ -97,6 +169,40 @@ export default function AdminKYCPage() {
           )}
         </CardBody>
       </Card>
+
+      <Modal isOpen={limitReview !== null} onClose={() => { setLimitReview(null); setLimitNote(''); }} title={limitReview ? `Limit Request — ${limitReview.user.name}` : ''} size="md">
+        {limitReview && (
+          <div className="p-6 space-y-5">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-1"><span className="text-[#8B949E]">Applicant</span><div>{limitReview.user.name}</div></div>
+              <div className="space-y-1"><span className="text-[#8B949E]">Email</span><div className="break-all">{limitReview.user.email}</div></div>
+              <div className="space-y-1"><span className="text-[#8B949E]">Current limit</span><div>{fmtUsd(limitReview.currentLimit)}</div></div>
+              <div className="space-y-1"><span className="text-[#8B949E]">Requested limit</span><div className="font-semibold text-amber-400">{fmtUsd(limitReview.requestedLimit)}</div></div>
+              <div className="space-y-1"><span className="text-[#8B949E]">KYC status</span><div>{limitReview.user.kycStatus || '—'}</div></div>
+              <div className="space-y-1"><span className="text-[#8B949E]">Requested</span><div>{formatDate(limitReview.createdAt, 'full')}</div></div>
+            </div>
+
+            {limitReview.reason && (
+              <div className="rounded-lg border border-[#21262D] bg-[#0D1117] p-3">
+                <div className="text-xs text-[#8B949E] mb-1">Stated reason</div>
+                <div className="text-sm">{limitReview.reason}</div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-[#8B949E]">Review Note</label>
+              <textarea value={limitNote} onChange={(e) => setLimitNote(e.target.value)} rows={2} placeholder="Optional for approval, required when declining..." className="bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2 text-sm text-[#E6EDF3] outline-none focus:border-amber-500/50 resize-none" />
+            </div>
+
+            <p className="text-xs text-[#6E7681]">Approving immediately raises this user&apos;s daily withdrawal limit and emails them.</p>
+
+            <div className="flex gap-3">
+              <Button variant="danger" fullWidth isLoading={decidingLimit} leftIcon={<X size={16} />} onClick={() => decideLimit(false)}>Decline</Button>
+              <Button variant="success" fullWidth isLoading={decidingLimit} leftIcon={<Check size={16} />} onClick={() => decideLimit(true)}>Approve</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal isOpen={review !== null} onClose={() => setReview(null)} title={review ? `KYC Review — ${review.user.name}` : ''} size="lg">
         {review && (

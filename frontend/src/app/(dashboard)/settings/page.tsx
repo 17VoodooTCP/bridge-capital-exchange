@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { User, Shield, Bell, ShieldCheck, Smartphone, Check, Monitor, X, QrCode, Clock, Upload, FileText, TrendingUp } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Tabs } from '@/components/ui/tabs';
@@ -74,6 +74,7 @@ export default function SettingsPage() {
       toast.success('Request submitted — our compliance team will respond within 1-2 business days.');
       setLimitReq({ requestedLimit: '', reason: '' });
       setLimitOpen(false);
+      loadKycStatus();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(msg || 'Could not submit the request.');
@@ -89,6 +90,20 @@ export default function SettingsPage() {
     if (m) setPhoneDial(m[1]);
     setProfile({ name: user.name || '', email: user.email || '', phone: m ? m[2] : (user.phone || ''), country: user.country || '' });
   }, [user]);
+
+  // Real withdrawal limit + any request already under review
+  const [limitInfo, setLimitInfo] = useState<{ withdrawalLimit: number; pendingLimitRequest: { requestedLimit: number } | null }>({ withdrawalLimit: 100000, pendingLimitRequest: null });
+
+  const loadKycStatus = useCallback(() => {
+    api.get('/kyc/status')
+      .then((r) => setLimitInfo({
+        withdrawalLimit: Number(r.data?.withdrawalLimit ?? 100000),
+        pendingLimitRequest: r.data?.pendingLimitRequest ?? null,
+      }))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { loadKycStatus(); }, [loadKycStatus]);
 
   useEffect(() => {
     api.get<Session[]>('/users/me/sessions')
@@ -377,17 +392,29 @@ export default function SettingsPage() {
             {kycStatus === 'APPROVED' ? (
               <>
                 <div className="grid sm:grid-cols-3 gap-3 text-sm">
-                  <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Daily Withdrawal</div><div className="font-medium">$100,000</div></div>
+                  <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Daily Withdrawal</div><div className="font-medium">{limitInfo.withdrawalLimit.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}</div></div>
                   <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Identity</div><div className="font-medium text-green-400">Verified</div></div>
                   <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Address</div><div className="font-medium text-green-400">Verified</div></div>
                 </div>
 
                 {/* Request a higher withdrawal limit */}
                 <div className="rounded-lg bg-[#0D1117] border border-[#21262D] p-4">
+                  {limitInfo.pendingLimitRequest ? (
+                    <div className="flex items-start gap-2.5 text-sm">
+                      <Clock size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-medium">Limit increase under review</div>
+                        <p className="text-xs text-[#8B949E] mt-0.5">
+                          Your request for {Number(limitInfo.pendingLimitRequest.requestedLimit).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} is with our compliance team. We&apos;ll email you once it&apos;s decided.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                  <>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="font-medium text-sm flex items-center gap-2"><TrendingUp size={15} className="text-amber-400" /> Need a higher limit?</div>
-                      <p className="text-xs text-[#8B949E] mt-0.5">Request an increase to your $100,000 daily withdrawal limit.</p>
+                      <p className="text-xs text-[#8B949E] mt-0.5">Request an increase to your current daily withdrawal limit.</p>
                     </div>
                     {!limitOpen && <Button size="sm" variant="outline" onClick={() => setLimitOpen(true)}>Request Increase</Button>}
                   </div>
@@ -417,6 +444,8 @@ export default function SettingsPage() {
                         <Button fullWidth isLoading={requestingLimit} onClick={requestLimit}>Submit Request</Button>
                       </div>
                     </div>
+                  )}
+                  </>
                   )}
                 </div>
               </>

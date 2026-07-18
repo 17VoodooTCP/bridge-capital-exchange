@@ -83,6 +83,7 @@ model User {
   country          String?
   phone            String?
   avatarUrl        String?
+  withdrawalLimit  Decimal   @default(100000) @db.Decimal(18, 2)
   refreshTokenHash String?
   resetTokenHash   String?
   resetTokenExpires DateTime?
@@ -101,6 +102,24 @@ model User {
   adminLogs     AdminLog[]        @relation("AdminActor")
   notifications Notification[]
   copyPositions CopyPosition[]
+  limitRequests LimitIncreaseRequest[]
+}
+
+model LimitIncreaseRequest {
+  id             String    @id @default(uuid())
+  userId         String
+  currentLimit   Decimal   @db.Decimal(18, 2)
+  requestedLimit Decimal   @db.Decimal(18, 2)
+  reason         String?
+  status         String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  reviewNote     String?
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
 }
 
 model Wallet {

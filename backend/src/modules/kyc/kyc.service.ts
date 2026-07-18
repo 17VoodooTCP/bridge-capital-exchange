@@ -2,6 +2,10 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
+/** Formats a numeric/Decimal amount as whole USD, e.g. $500,000 */
+const fmtUsd = (v: unknown) =>
+  Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
 @Injectable()
 export class KycService {
   constructor(
@@ -36,18 +40,36 @@ export class KycService {
       throw new BadRequestException('Enter the daily withdrawal limit you need.');
     }
     const user = await this.prisma.user
-      .findUnique({ where: { id: userId }, select: { name: true, email: true, kycStatus: true } })
+      .findUnique({ where: { id: userId }, select: { name: true, email: true, kycStatus: true, withdrawalLimit: true } })
       .catch(() => null);
 
     if (user && user.kycStatus !== 'APPROVED') {
       throw new BadRequestException('Complete identity verification before requesting a higher limit.');
     }
 
-    const limit = Number(dto.requestedLimit).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    // Only one open request at a time
+    const existing = await this.prisma.limitIncreaseRequest
+      .findFirst({ where: { userId, status: 'PENDING' } })
+      .catch(() => null);
+    if (existing) {
+      throw new BadRequestException('You already have a limit increase request under review.');
+    }
+
+    const currentLimit = Number(user?.withdrawalLimit ?? 100000);
+    const request = await this.prisma.limitIncreaseRequest.create({
+      data: {
+        userId,
+        currentLimit,
+        requestedLimit: Number(dto.requestedLimit),
+        reason: dto.reason,
+      },
+    });
+
+    const limit = fmtUsd(dto.requestedLimit);
 
     await this.notifications.notifyAdmin(
       'Withdrawal limit increase requested',
-      `${user?.name || 'A user'} (${user?.email || userId}) requested a daily withdrawal limit of ${limit}.${dto.reason ? ` Reason: ${dto.reason}` : ''} Review it in Admin → Users.`,
+      `${user?.name || 'A user'} (${user?.email || userId}) requested a daily withdrawal limit of ${limit} (currently ${fmtUsd(currentLimit)}).${dto.reason ? ` Reason: ${dto.reason}` : ''} Approve or reject it in Admin → KYC Review.`,
     );
 
     await this.notifications.notify(userId, {
@@ -58,11 +80,74 @@ export class KycService {
       event: 'kyc',
     });
 
-    return { success: true };
+    return request;
   }
 
-  getStatus(userId: string) {
-    return this.prisma.user.findUnique({ where: { id: userId }, select: { kycStatus: true } }).catch(() => ({ kycStatus: 'NONE' }));
+  // ─── Admin: review limit increase requests ────────────────────────
+
+  listLimitRequests(status = 'PENDING') {
+    return this.prisma.limitIncreaseRequest
+      .findMany({
+        where: status === 'ALL' ? undefined : { status },
+        include: { user: { select: { name: true, email: true, kycStatus: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      })
+      .catch(() => []);
+  }
+
+  async reviewLimitRequest(
+    id: string,
+    approve: boolean,
+    reviewerId: string,
+    note?: string,
+  ) {
+    const req = await this.prisma.limitIncreaseRequest.findUnique({ where: { id } });
+    if (!req) throw new BadRequestException('Request not found');
+    if (req.status !== 'PENDING') throw new BadRequestException('This request has already been reviewed.');
+
+    const updated = await this.prisma.limitIncreaseRequest.update({
+      where: { id },
+      data: {
+        status: approve ? 'APPROVED' : 'REJECTED',
+        reviewedBy: reviewerId,
+        reviewedAt: new Date(),
+        reviewNote: note,
+      },
+    });
+
+    // Approving actually raises the user's limit
+    if (approve) {
+      await this.prisma.user
+        .update({ where: { id: req.userId }, data: { withdrawalLimit: req.requestedLimit } })
+        .catch(() => null);
+    }
+
+    await this.notifications.notify(req.userId, {
+      title: approve ? 'Withdrawal limit increased ✓' : 'Limit increase request declined',
+      body: approve
+        ? `Your daily withdrawal limit has been raised to ${fmtUsd(req.requestedLimit)}. It's active immediately.`
+        : `We couldn't approve your request to raise your daily withdrawal limit to ${fmtUsd(req.requestedLimit)}${note ? `: ${note}` : '.'} Your current limit of ${fmtUsd(req.currentLimit)} still applies. Contact support if you'd like to discuss it.`,
+      type: 'KYC',
+      email: true,
+      event: 'kyc',
+    });
+
+    return updated;
+  }
+
+  async getStatus(userId: string) {
+    const user = await this.prisma.user
+      .findUnique({ where: { id: userId }, select: { kycStatus: true, withdrawalLimit: true } })
+      .catch(() => null);
+    const pending = await this.prisma.limitIncreaseRequest
+      .findFirst({ where: { userId, status: 'PENDING' }, select: { requestedLimit: true, createdAt: true } })
+      .catch(() => null);
+    return {
+      kycStatus: user?.kycStatus || 'NONE',
+      withdrawalLimit: Number(user?.withdrawalLimit ?? 100000),
+      pendingLimitRequest: pending ? { requestedLimit: Number(pending.requestedLimit), createdAt: pending.createdAt } : null,
+    };
   }
 
   listPending() {
