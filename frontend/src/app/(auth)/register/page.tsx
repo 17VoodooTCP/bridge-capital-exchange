@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
+import { Modal } from '@/components/ui/modal';
+import { TermsContent, PrivacyContent, RiskContent } from '@/components/legal/LegalContent';
 import { COUNTRIES, flagUrl } from '@/lib/countries';
 import toast from 'react-hot-toast';
 
@@ -16,6 +18,14 @@ export default function RegisterPage() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
+  // Which legal document the sign-up modal is showing (null = closed)
+  const [legal, setLegal] = useState<'terms' | 'privacy' | 'risk' | null>(null);
+
+  const LEGAL_DOCS = {
+    terms: { title: 'Terms of Service', body: <TermsContent /> },
+    privacy: { title: 'Privacy Policy', body: <PrivacyContent /> },
+    risk: { title: 'Risk Disclosure', body: <RiskContent /> },
+  };
 
   const pwToggle = (
     <button type="button" onClick={() => setShowPw(!showPw)} className="text-[#8B949E] hover:text-amber-400 transition-colors">
@@ -88,7 +98,14 @@ export default function RegisterPage() {
 
             <label className="flex items-start gap-2 cursor-pointer text-sm text-[#8B949E]">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 rounded border-[#21262D] bg-[#111318] text-amber-500 focus:ring-amber-500/30" />
-              <span>I agree to the <a href="#" className="text-amber-400 hover:text-amber-300">Terms of Service</a> and <a href="#" className="text-amber-400 hover:text-amber-300">Privacy Policy</a></span>
+              <span>
+                I agree to the{' '}
+                <button type="button" onClick={() => setLegal('terms')} className="text-amber-400 hover:text-amber-300 underline underline-offset-2">Terms of Service</button>
+                {', '}
+                <button type="button" onClick={() => setLegal('risk')} className="text-amber-400 hover:text-amber-300 underline underline-offset-2">Risk Disclosure</button>
+                {' and '}
+                <button type="button" onClick={() => setLegal('privacy')} className="text-amber-400 hover:text-amber-300 underline underline-offset-2">Privacy Policy</button>
+              </span>
             </label>
 
             <Button type="submit" fullWidth size="lg" isLoading={loading} rightIcon={<ArrowRight size={16} />}>Create Account</Button>
@@ -105,6 +122,21 @@ export default function RegisterPage() {
           <Link href="/login" className="text-amber-400 hover:text-amber-300 font-medium">Sign in</Link>
         </p>
       </div>
+
+      {/* Legal documents — readable without leaving the form */}
+      <Modal isOpen={legal !== null} onClose={() => setLegal(null)} title={legal ? LEGAL_DOCS[legal].title : ''} size="lg">
+        {legal && (
+          <div className="p-6 space-y-5">
+            <div className="max-h-[55vh] overflow-y-auto pr-1">{LEGAL_DOCS[legal].body}</div>
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-[#21262D]">
+              {(['terms', 'risk', 'privacy'] as const).filter((k) => k !== legal).map((k) => (
+                <Button key={k} size="sm" variant="ghost" onClick={() => setLegal(k)}>Read {LEGAL_DOCS[k].title}</Button>
+              ))}
+              <Button size="sm" className="ml-auto" onClick={() => { setAgreed(true); setLegal(null); }}>Accept &amp; Continue</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

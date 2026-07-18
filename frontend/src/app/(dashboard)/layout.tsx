@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Wait for zustand to finish reading localStorage before judging auth.
     if (!hasHydrated) return;
     if (!isAuthenticated) {
-      router.replace('/register');
+      router.replace('/login');
       return;
     }
     // Validate the session against the server with a RAW axios call (bypassing
@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (cancelled) return;
         if (err?.response?.status === 401) {
           logout();
-          router.replace('/register');
+          router.replace('/login');
         } else {
           // Network hiccup / cold start — trust the local session for now
           setReady(true);
