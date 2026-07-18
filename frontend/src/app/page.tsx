@@ -240,7 +240,7 @@ export default function LandingPage() {
       <section className="bg-[#F5F6F8] text-[#111318] py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 text-center">
           <PaymentCards />
-          <p className="text-xs text-[#8B949E] mb-8 flex items-center justify-center gap-1.5"><span className="hidden sm:inline">←</span> Swipe to explore all cards <span className="hidden sm:inline">→</span></p>
+          <p className="text-xs text-[#8B949E] mb-8">Four tiers, one account · hover to pause</p>
           <h2 className="text-2xl lg:text-4xl font-bold mb-6">Live crypto. Pay anywhere. Get 10% back.</h2>
           <Button onClick={() => router.push('/register')}>Get My Card</Button>
           <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mt-14">

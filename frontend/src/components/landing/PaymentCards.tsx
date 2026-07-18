@@ -85,10 +85,21 @@ export function PaymentCards() {
     return () => { clearTimeout(first); clearInterval(loop); };
   }, [armed]);
 
+  // Duplicated so the marquee can loop seamlessly at -50%
+  const track = [...CARDS, ...CARDS];
+
   return (
-    <div ref={ref} className="card-swipe flex gap-5 overflow-x-auto pb-6 mb-8 px-[calc(50%-7rem)] snap-x snap-mandatory">
-      {CARDS.map((c, i) => (
-        <div key={c.name} className="shrink-0 snap-center" style={{ perspective: '1200px' }}>
+    <div ref={ref} className="relative overflow-hidden py-4 mb-6 group">
+      {/* soft edges so cards fade in/out rather than popping at the border */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-16 z-10 bg-gradient-to-r from-[#F5F6F8] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-16 z-10 bg-gradient-to-l from-[#F5F6F8] to-transparent" />
+
+      <div className="card-marquee flex w-max">
+        {track.map((c, idx) => {
+          const i = idx % CARDS.length;
+          return (
+        // mr instead of a flex gap keeps every item the same width, so -50% loops exactly
+        <div key={idx} className="shrink-0 mr-5" style={{ perspective: '1200px' }}>
           <div
             className="relative w-56 h-36"
             style={{
@@ -144,7 +155,9 @@ export function PaymentCards() {
             </div>
           </div>
         </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 }

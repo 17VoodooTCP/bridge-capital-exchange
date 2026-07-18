@@ -357,3 +357,17 @@ font {
 @media (prefers-reduced-motion: reduce) {
   .candle { animation: none; }
 }
+
+/* ─── Payment-card marquee: cards drift left and re-enter from the right ─── */
+@keyframes cardMarquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.card-marquee {
+  animation: cardMarquee 34s linear infinite;
+  will-change: transform;
+}
+.group:hover .card-marquee { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .card-marquee { animation: none; }
+}
