@@ -131,6 +131,54 @@ export class NotificationsService {
   }
 
   /**
+   * General-purpose composed email — any subject/body sent through the same
+   * branded white template used for every notification. Optionally appends a
+   * device/location details block (for login/security alerts) and records a
+   * matching in-app notification if the recipient is a registered user.
+   */
+  async sendComposed(
+    to: string,
+    opts: {
+      name?: string;
+      subject: string;
+      body: string;
+      device?: string;
+      location?: string;
+      notifyInApp?: boolean;
+      type?: NotifType;
+    },
+  ) {
+    if (!to || !opts.subject || !opts.body) {
+      return { sent: false, error: 'Recipient, subject, and message are required.' };
+    }
+
+    // Look up the user so we can greet them by name and (optionally) record an
+    // in-app notification alongside the email.
+    const user = await this.prisma.user
+      .findUnique({ where: { email: to }, select: { id: true, name: true } })
+      .catch(() => null);
+
+    let bodyHtml = opts.body.replace(/\n/g, '<br/>');
+    if (opts.device || opts.location) {
+      const rows: string[] = [];
+      if (opts.device) rows.push(`Device: ${opts.device}`);
+      if (opts.location) rows.push(`Location: ${opts.location}`);
+      rows.push(`Time: ${new Date().toUTCString()}`);
+      bodyHtml += `<br/><br/><span style="display:inline-block;background:#f6f7f9;border:1px solid #eee;border-radius:8px;padding:12px 14px;font-size:13px;color:#555;line-height:1.6">${rows.join('<br/>')}</span>`;
+    }
+
+    const html = this.emailHtml(opts.name || user?.name || 'there', opts.subject, bodyHtml);
+    const result = await this.sendEmail(to, opts.subject, html);
+
+    if (opts.notifyInApp && user) {
+      await this.prisma.notification
+        .create({ data: { userId: user.id, title: opts.subject, body: opts.body, type: opts.type || 'GENERAL' } })
+        .catch(() => null);
+    }
+    return result;
+  }
+
+  /**
    * P2P order-completion email — clean white transactional layout with the
    * Bridge Capital logo header, matching the reference design.
    */

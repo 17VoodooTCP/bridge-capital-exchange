@@ -64,7 +64,7 @@ export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', userId
       <div className="p-6 space-y-5">
         <div className="rounded-lg bg-[#111318] border border-[#21262D] p-3 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-[#8B949E]">Total (stablecoins)</span>
+            <span className="text-[#8B949E]">Total balance (all assets)</span>
             <span className="font-semibold">{formatCurrency(currentBalance)}</span>
           </div>
           {wallets.length > 0 && (
@@ -86,11 +86,17 @@ export function FundAdjustmentModal({ isOpen, onClose, userName = 'User', userId
           )}
           {asset && (() => {
             const selected = wallets.find((w) => w.asset.toUpperCase() === asset.toUpperCase());
-            const bal = selected ? Number(selected.balance) : 0;
+            const avail = selected ? Number(selected.balance) : 0;
+            const locked = selected ? Number(selected.lockedBalance) : 0;
+            const total = avail + locked;
             return (
               <div className="pt-2 border-t border-[#21262D] flex justify-between text-sm">
-                <span className="text-[#8B949E]">Current {asset} balance</span>
-                <span className="font-semibold text-amber-400">{bal.toFixed(6)} {asset}</span>
+                <span className="text-[#8B949E]">
+                  Current {asset} balance
+                  {locked > 0 && <span className="block text-xs text-[#6E7681]">{avail.toFixed(6)} available + {locked.toFixed(6)} locked</span>}
+                </span>
+                {/* Total = available + locked — matches what the user sees on their dashboard */}
+                <span className="font-semibold text-amber-400">{total.toFixed(6)} {asset}</span>
               </div>
             );
           })()}

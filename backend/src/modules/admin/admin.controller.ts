@@ -34,6 +34,12 @@ export class AdminController {
     return this.notifications.setEmailFlags(body as never);
   }
 
+  // General composed email — any subject/body sent through the branded template
+  @Post('send-email')
+  sendComposedEmail(@Body() body: { to: string; name?: string; subject: string; body: string; device?: string; location?: string; notifyInApp?: boolean }) {
+    return this.notifications.sendComposed(body.to, body);
+  }
+
   // Send the P2P order-completion email (branded, matches the reference design)
   @Post('send-order-email')
   sendOrderEmail(@Body() body: { to: string; name?: string; side?: 'Buy' | 'Sell'; orderId: string; createdAt?: string; fiatAmount: string; cryptoQuantity: string }) {

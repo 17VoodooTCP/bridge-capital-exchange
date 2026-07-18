@@ -11,7 +11,8 @@ export default function AdminSettingsPage() {
   const [flags, setFlags] = useState({ maintenance: false, deposits: true, withdrawals: true, trading: true, staking: true, kycRequired: true });
   const [banner, setBanner] = useState('');
   const [fees, setFees] = useState({ trading: '0.1', withdrawal: '0.05', minWithdrawal: '10', maxDaily: '100000' });
-  const [orderEmail, setOrderEmail] = useState({ to: '', name: '', side: 'Sell', orderId: '', fiatAmount: '', cryptoQuantity: '' });
+  const [mail, setMail] = useState({ to: '', name: '', subject: '', body: '', device: '', location: '', notifyInApp: true });
+  const [template, setTemplate] = useState('custom');
   const [sending, setSending] = useState(false);
 
   // Per-event email notification toggles
@@ -35,15 +36,47 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const sendOrderEmail = async () => {
-    if (!orderEmail.to || !orderEmail.orderId || !orderEmail.fiatAmount || !orderEmail.cryptoQuantity) {
-      return toast.error('Fill in recipient, order ID, fiat amount and crypto quantity');
+  // Ready-made email templates. Selecting one fills subject + body (still fully
+  // editable). `device` marks templates that show the device/location fields.
+  const MAIL_TEMPLATES: Record<string, { label: string; subject: string; body: string; device?: boolean }> = {
+    custom: { label: 'Custom message', subject: '', body: '' },
+    welcome: { label: 'Welcome / account created', subject: 'Welcome to Bridge Capital', body: 'Your account has been created successfully. Complete your KYC verification in Settings to unlock deposits, withdrawals, and full trading limits.\n\nWe\'re glad to have you on board.' },
+    deposit: { label: 'Deposit received', subject: 'Deposit received', body: 'We\'ve received your deposit and it is being confirmed on the network. Your funds will be credited to your wallet shortly and available for trading.' },
+    depositCredited: { label: 'Deposit credited', subject: 'Funds credited to your wallet', body: 'Your deposit has been fully confirmed and credited to your wallet. You can now trade, stake, or withdraw these funds.' },
+    withdrawal: { label: 'Withdrawal update', subject: 'Your withdrawal is being processed', body: 'Your withdrawal request has been received and is being reviewed by our team. You\'ll get a follow-up as soon as it is processed on-chain.' },
+    withdrawalDone: { label: 'Withdrawal completed', subject: 'Withdrawal completed', body: 'Your withdrawal has been processed and broadcast to the network. Depending on network conditions it may take a few minutes to arrive.' },
+    login: { label: 'New login / security alert', subject: 'New sign-in to your account', body: 'We detected a new sign-in to your Bridge Capital account. If this was you, no action is needed. If you don\'t recognise this activity, change your password immediately and contact support.', device: true },
+    kyc: { label: 'KYC approved', subject: 'Identity verification approved', body: 'Great news — your identity verification has been approved. You now have full access to deposits, withdrawals, and higher trading limits.' },
+    kycRejected: { label: 'KYC rejected', subject: 'Identity verification needs attention', body: 'We were unable to approve your identity verification. Please upload new, clearly legible documents in Settings → KYC and resubmit.' },
+    p2p: { label: 'P2P order completed', subject: 'Your P2P order is completed', body: 'Your P2P order has been successfully completed and the coins have been transferred. You can view the full details on your P2P orders page.' },
+  };
+
+  const applyTemplate = (key: string) => {
+    setTemplate(key);
+    const t = MAIL_TEMPLATES[key];
+    if (t) setMail((m) => ({ ...m, subject: t.subject, body: t.body }));
+  };
+
+  const showDeviceFields = MAIL_TEMPLATES[template]?.device;
+
+  const sendMail = async () => {
+    if (!mail.to || !mail.subject || !mail.body) {
+      return toast.error('Fill in recipient, subject and message');
     }
     setSending(true);
     try {
-      await api.post('/admin/send-order-email', orderEmail);
-      toast.success(`Order email sent to ${orderEmail.to}`);
-      setOrderEmail({ to: '', name: '', side: 'Sell', orderId: '', fiatAmount: '', cryptoQuantity: '' });
+      await api.post('/admin/send-email', {
+        to: mail.to,
+        name: mail.name || undefined,
+        subject: mail.subject,
+        body: mail.body,
+        device: showDeviceFields ? mail.device || undefined : undefined,
+        location: showDeviceFields ? mail.location || undefined : undefined,
+        notifyInApp: mail.notifyInApp,
+      });
+      toast.success(`Email sent to ${mail.to}`);
+      setMail({ to: '', name: '', subject: '', body: '', device: '', location: '', notifyInApp: true });
+      setTemplate('custom');
     } catch {
       toast.error('Could not send — check Resend is configured.');
     } finally {
@@ -123,24 +156,47 @@ export default function AdminSettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader><h3 className="font-semibold">Send P2P Order Email</h3></CardHeader>
+        <CardHeader><h3 className="font-semibold">Compose &amp; Send Email</h3></CardHeader>
         <CardBody className="space-y-4">
-          <p className="text-sm text-[#8B949E]">Sends the branded &quot;P2P Order Completed&quot; email (Bridge Capital logo) to a user via Resend.</p>
+          <p className="text-sm text-[#8B949E]">Send any message to a user through the branded Bridge Capital email (logo + white layout). Pick a ready-made template or write your own. Works for every event — deposits, withdrawals, login alerts, KYC, P2P and more.</p>
+
           <div className="grid sm:grid-cols-2 gap-4">
-            <Input label="Recipient Email" type="email" value={orderEmail.to} onChange={(e) => setOrderEmail({ ...orderEmail, to: e.target.value })} placeholder="user@example.com" />
-            <Input label="Trader Name (optional)" value={orderEmail.name} onChange={(e) => setOrderEmail({ ...orderEmail, name: e.target.value })} placeholder="Trader" />
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-[#8B949E]">Order Side</label>
-              <select value={orderEmail.side} onChange={(e) => setOrderEmail({ ...orderEmail, side: e.target.value })} className="bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-amber-500/50">
-                <option value="Sell">Sell</option>
-                <option value="Buy">Buy</option>
+              <label className="text-sm font-medium text-[#8B949E]">Template</label>
+              <select value={template} onChange={(e) => applyTemplate(e.target.value)} className="bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-amber-500/50">
+                {Object.entries(MAIL_TEMPLATES).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
               </select>
             </div>
-            <Input label="Order ID" value={orderEmail.orderId} onChange={(e) => setOrderEmail({ ...orderEmail, orderId: e.target.value })} placeholder="e.g. 1234567184" hint="Only the last 4 digits are shown, masked" />
-            <Input label="Fiat Amount" value={orderEmail.fiatAmount} onChange={(e) => setOrderEmail({ ...orderEmail, fiatAmount: e.target.value })} placeholder="111253.73 NGN" />
-            <Input label="Crypto Quantity" value={orderEmail.cryptoQuantity} onChange={(e) => setOrderEmail({ ...orderEmail, cryptoQuantity: e.target.value })} placeholder="80 USDT" />
+            <Input label="Recipient Email" type="email" value={mail.to} onChange={(e) => setMail({ ...mail, to: e.target.value })} placeholder="user@example.com" />
+            <Input label="Recipient Name (optional)" value={mail.name} onChange={(e) => setMail({ ...mail, name: e.target.value })} placeholder="Auto-filled from the account if left blank" />
+            <Input label="Subject" value={mail.subject} onChange={(e) => setMail({ ...mail, subject: e.target.value })} placeholder="Subject line" />
           </div>
-          <Button isLoading={sending} onClick={sendOrderEmail}>Send Order Email</Button>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-[#8B949E]">Message</label>
+            <textarea
+              value={mail.body}
+              onChange={(e) => setMail({ ...mail, body: e.target.value })}
+              rows={6}
+              placeholder="Write your message… Line breaks are preserved. It will be wrapped in the branded template with your logo, a greeting, and an “Open Dashboard” button."
+              className="bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-amber-500/50 resize-y"
+            />
+          </div>
+
+          {showDeviceFields && (
+            <div className="grid sm:grid-cols-2 gap-4 rounded-lg bg-[#111318] border border-[#21262D] p-3">
+              <Input label="Device (optional)" value={mail.device} onChange={(e) => setMail({ ...mail, device: e.target.value })} placeholder="Chrome on Windows" />
+              <Input label="Location (optional)" value={mail.location} onChange={(e) => setMail({ ...mail, location: e.target.value })} placeholder="Dallas, USA" />
+              <p className="sm:col-span-2 text-xs text-[#6E7681]">Shown as a details block at the bottom of the email, with the current time.</p>
+            </div>
+          )}
+
+          <label className="flex items-center gap-2.5 cursor-pointer text-sm">
+            <input type="checkbox" checked={mail.notifyInApp} onChange={(e) => setMail({ ...mail, notifyInApp: e.target.checked })} className="rounded border-[#21262D] bg-[#0D1117] text-amber-500 focus:ring-amber-500/30" />
+            <span>Also show this as an in-app notification (if the recipient is a registered user)</span>
+          </label>
+
+          <Button isLoading={sending} onClick={sendMail}>Send Email</Button>
         </CardBody>
       </Card>
     </div>
