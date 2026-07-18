@@ -282,9 +282,11 @@ export class NotificationsService {
 
     return `
     <div style="margin-top:36px;padding-top:34px;border-top:1px solid #eee;text-align:center">
-      <div style="font-size:24px;font-weight:800;color:${navy};margin-bottom:24px;line-height:1.3">
+      <div style="font-size:24px;font-weight:800;color:${navy};margin-bottom:22px;line-height:1.3">
         For Every Trader, <span style="color:${gold}">Every Market</span>
       </div>
+
+      <img src="${site}/email/badges.png" alt="Multi-asset trading · Verified accounts · Live support" width="520" style="display:block;width:100%;max-width:520px;height:auto;margin:0 auto 26px;border:0" />
 
       <a href="${site}/dashboard" style="display:block;background:${gold};color:${navy};text-decoration:none;font-weight:700;font-size:16px;padding:16px 24px;border-radius:10px;margin:0 auto 28px">
         Start Trading with Bridge Capital
