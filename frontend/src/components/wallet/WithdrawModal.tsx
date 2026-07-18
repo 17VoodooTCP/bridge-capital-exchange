@@ -1,11 +1,13 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Shield } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatNumber } from '@/lib/utils';
+import { useWalletData } from '@/hooks/useWalletData';
+import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
 interface WithdrawModalProps {
@@ -14,14 +16,6 @@ interface WithdrawModalProps {
   symbol?: string;
   availableBalance?: number;
 }
-
-const ASSET_OPTIONS = [
-  { value: 'USDT', label: 'USDT — Tether' },
-  { value: 'BTC', label: 'BTC — Bitcoin' },
-  { value: 'ETH', label: 'ETH — Ethereum' },
-  { value: 'SOL', label: 'SOL — Solana' },
-  { value: 'BNB', label: 'BNB — BNB' },
-];
 
 const NETWORKS_BY_ASSET: Record<string, { value: string; label: string; fee: number }[]> = {
   USDT: [
@@ -38,11 +32,8 @@ const NETWORKS_BY_ASSET: Record<string, { value: string; label: string; fee: num
   BNB: [{ value: 'BEP20', label: 'BEP20 (BSC)', fee: 0.001 }],
 };
 
-const BALANCES: Record<string, number> = {
-  USDT: 3445.82, BTC: 0.4821, ETH: 4.32, SOL: 42.5, BNB: 2.1,
-};
-
 export function WithdrawModal({ isOpen, onClose, symbol = 'USDT' }: WithdrawModalProps) {
+  const { balances, refresh } = useWalletData();
   const [step, setStep] = useState<1 | 2>(1);
   const [asset, setAsset] = useState(symbol);
   const [networkIndex, setNetworkIndex] = useState(0);
@@ -51,40 +42,75 @@ export function WithdrawModal({ isOpen, onClose, symbol = 'USDT' }: WithdrawModa
   const [twoFaCode, setTwoFaCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Only assets the user actually holds are selectable
+  const fundedBalances = balances.filter((b) => b.available > 0);
+  const assetOptions = fundedBalances.map((b) => ({ value: b.symbol, label: `${b.symbol} — ${b.name}` }));
+
+  // When opened, default to the requested asset if funded, else the first funded one
+  useEffect(() => {
+    if (!isOpen) return;
+    const has = (s: string) => balances.some((b) => b.symbol === s && b.available > 0);
+    if (has(symbol.toUpperCase())) setAsset(symbol.toUpperCase());
+    else if (fundedBalances[0]) setAsset(fundedBalances[0].symbol);
+    setNetworkIndex(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, symbol, balances.length]);
+
   const networks = NETWORKS_BY_ASSET[asset] ?? [{ value: 'native', label: 'Native', fee: 0 }];
   const network = networks[networkIndex];
-  const balance = BALANCES[asset] ?? 0;
+  const balance = balances.find((b) => b.symbol === asset)?.available ?? 0;
   const amountNum = parseFloat(amount) || 0;
   const receive = Math.max(0, amountNum - (network?.fee ?? 0));
 
   const handleNext = () => {
+    if (fundedBalances.length === 0) return toast.error('No funds available to withdraw');
     if (!address) return toast.error('Enter recipient address');
     if (!amountNum || amountNum <= 0) return toast.error('Enter valid amount');
-    if (amountNum > balance) return toast.error('Insufficient balance');
+    if (amountNum > balance) return toast.error(`Insufficient balance. Available: ${formatNumber(balance, 6)} ${asset}`);
     setStep(2);
   };
 
   const handleSubmit = async () => {
-    if (twoFaCode.length < 6) return toast.error('Enter 6-digit 2FA code');
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    toast.success(`Withdrawal of ${formatNumber(amountNum)} ${asset} submitted!`);
-    setIsLoading(false);
-    onClose();
-    setStep(1);
-    setAmount('');
-    setAddress('');
-    setTwoFaCode('');
+    try {
+      await api.post('/wallet/withdraw', {
+        asset,
+        network: network?.value || 'native',
+        toAddress: address,
+        amount: amountNum,
+        twoFactorCode: twoFaCode || undefined,
+      });
+      toast.success(`Withdrawal of ${formatNumber(amountNum)} ${asset} submitted for review.`);
+      refresh();
+      onClose();
+      setStep(1);
+      setAmount('');
+      setAddress('');
+      setTwoFaCode('');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Withdrawal failed. Check your balance and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Withdraw Crypto" size="md">
       <div className="p-6 space-y-5">
         {step === 1 ? (
+          fundedBalances.length === 0 ? (
+            <div className="text-center py-8 space-y-3">
+              <AlertTriangle size={32} className="text-amber-400 mx-auto" />
+              <p className="text-sm text-[#E6EDF3]">No funds available to withdraw</p>
+              <p className="text-xs text-[#8B949E]">Deposit into your wallet first. Assets you hold will appear here.</p>
+              <Button variant="outline" onClick={onClose}>Close</Button>
+            </div>
+          ) : (
           <>
             <Select
               label="Asset"
-              options={ASSET_OPTIONS}
+              options={assetOptions}
               value={asset}
               onChange={(v) => { setAsset(v); setNetworkIndex(0); }}
             />
@@ -149,6 +175,7 @@ export function WithdrawModal({ isOpen, onClose, symbol = 'USDT' }: WithdrawModa
               Continue
             </Button>
           </>
+          )
         ) : (
           <>
             <div className="bg-[#111318] border border-[#21262D] rounded-xl p-4 space-y-3 text-sm">

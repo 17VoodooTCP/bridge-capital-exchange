@@ -165,21 +165,31 @@ export class NotificationsService {
 </div>`;
   }
 
+  // Clean, white transactional layout with the Bridge Capital logo header —
+  // used for every notification email (welcome, deposits, withdrawals, KYC…).
   private emailHtml(name: string, title: string, body: string) {
+    const site = (process.env.FRONTEND_URL || 'https://bridgecapitalv1.com').replace(/\/$/, '');
+    const logo = `${site}/logo.svg`;
     return `
-<div style="background:#0A0B0D;padding:40px 16px;font-family:Arial,Helvetica,sans-serif">
-  <div style="max-width:520px;margin:0 auto;background:#161B22;border:1px solid #21262D;border-radius:16px;overflow:hidden">
-    <div style="background:linear-gradient(135deg,#F59E0B,#EA580C);padding:20px 28px">
-      <span style="font-size:18px;font-weight:bold;color:#000">Bridge Capital</span>
+<div style="background:#ffffff;padding:0;margin:0;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a">
+  <div style="max-width:600px;margin:0 auto;padding:40px 28px">
+    <div style="text-align:center;padding-bottom:28px;border-bottom:1px solid #eee">
+      <img src="${logo}" alt="Bridge Capital" width="56" height="56" style="display:inline-block;border-radius:12px" />
+      <div style="font-size:26px;font-weight:800;letter-spacing:1px;margin-top:10px;color:#0A1A3A">
+        BRIDGE<span style="color:#E8B547">CAPITAL</span>
+      </div>
+      <div style="font-size:13px;color:#666;margin-top:6px">
+        <span style="font-weight:600">#YourBridge</span> to <span style="color:#E8B547;font-weight:600">Digital Markets</span>
+      </div>
     </div>
-    <div style="padding:28px;color:#E6EDF3">
-      <h2 style="margin:0 0 12px;font-size:18px">${title}</h2>
-      <p style="margin:0 0 8px;color:#8B949E;font-size:14px;line-height:1.6">Hi ${name},</p>
-      <p style="margin:0 0 20px;color:#E6EDF3;font-size:14px;line-height:1.6">${body}</p>
-      <a href="${process.env.FRONTEND_URL || '#'}" style="display:inline-block;background:#F59E0B;color:#000;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 22px;border-radius:10px">Open Dashboard</a>
+    <div style="padding:32px 4px 8px;font-size:15px;line-height:1.7;color:#333">
+      <h2 style="margin:0 0 18px;font-size:19px;color:#0A1A3A">${title}</h2>
+      <p style="margin:0 0 16px">Dear ${name},</p>
+      <p style="margin:0 0 24px">${body}</p>
+      <a href="${site}/dashboard" style="display:inline-block;background:#E8B547;color:#0A1A3A;text-decoration:none;font-weight:700;font-size:14px;padding:11px 26px;border-radius:8px">Open Dashboard</a>
     </div>
-    <div style="padding:16px 28px;border-top:1px solid #21262D;color:#6E7681;font-size:11px;line-height:1.5">
-      This is an automated message from Bridge Capital. If you did not expect this email, please contact support immediately.
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#999;line-height:1.5;text-align:center">
+      This is an automated message from Bridge Capital. If you did not expect this email, contact support@bridgecapitalv1.com.
     </div>
   </div>
 </div>`;

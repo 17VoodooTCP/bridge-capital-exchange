@@ -43,7 +43,7 @@ export default function DashboardPage() {
           Total Balance
           <button onClick={() => setHideBalance(!hideBalance)}>{hideBalance ? <EyeOff size={13} /> : <Eye size={13} />}</button>
         </div>
-        <div className="text-3xl font-bold">
+        <div className="text-2xl sm:text-3xl font-bold break-all leading-tight">
           {isLoading ? <span className="skeleton inline-block w-40 h-8 rounded" /> : mask(formatCurrency(totalUsdValue))}
         </div>
         {hasAssets && <div className="mt-4"><PortfolioChart currentValue={totalUsdValue} days={30} height={140} /></div>}

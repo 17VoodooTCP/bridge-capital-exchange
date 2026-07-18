@@ -32,17 +32,18 @@ export default function WalletPage() {
       </div>
 
       {/* Total balance */}
-      <Card glow="gold" className="p-6">
+      <Card glow="gold" className="p-5 sm:p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm text-[#8B949E]">
               Total Balance <button onClick={() => setHide(!hide)}>{hide ? <EyeOff size={14} /> : <Eye size={14} />}</button>
             </div>
-            <div className="text-4xl font-bold mt-1">
+            <div className="text-3xl sm:text-4xl font-bold mt-1 break-all leading-tight">
               {isLoading ? <span className="skeleton inline-block w-40 h-9 rounded" /> : mask(formatCurrency(totalUsdValue))}
             </div>
           </div>
-          <div className="flex gap-3">
+          {/* Full-width 2-up on mobile so both actions are always visible */}
+          <div className="grid grid-cols-2 gap-3 md:flex md:shrink-0">
             <Button size="lg" leftIcon={<ArrowDownLeft size={18} />} onClick={() => setDeposit({ open: true, symbol: balances[0]?.symbol || 'USDT' })}>Deposit</Button>
             <Button size="lg" variant="outline" leftIcon={<ArrowUpRight size={18} />} onClick={() => setWithdraw({ open: true, symbol: balances[0]?.symbol || 'USDT' })}>Withdraw</Button>
           </div>
