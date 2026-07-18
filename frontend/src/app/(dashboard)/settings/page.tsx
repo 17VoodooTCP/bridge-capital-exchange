@@ -147,6 +147,7 @@ export default function SettingsPage() {
       />
 
       {tab === 'profile' && (
+        <>
         <Card>
           <CardHeader><h3 className="font-semibold flex items-center gap-2"><User size={16} className="text-amber-400" /> Profile</h3></CardHeader>
           <CardBody className="space-y-4">
@@ -192,6 +193,39 @@ export default function SettingsPage() {
             <Button isLoading={savingProfile} onClick={saveProfile}>Save Changes</Button>
           </CardBody>
         </Card>
+
+        {/* Signed-in devices & location summary — full list under the Devices tab */}
+        <Card>
+          <CardHeader className="flex items-center justify-between gap-3">
+            <h3 className="font-semibold flex items-center gap-2"><Monitor size={16} className="text-amber-400" /> Signed-in Devices &amp; Location</h3>
+            {sessions.length > 0 && <button onClick={() => setTab('devices')} className="text-xs text-amber-400 hover:text-amber-300">View all</button>}
+          </CardHeader>
+          <CardBody className="p-0">
+            {sessionsLoading ? (
+              <div className="p-5 space-y-3">{[1, 2].map((i) => <div key={i} className="skeleton h-10 rounded-lg" />)}</div>
+            ) : sessions.length === 0 ? (
+              <div className="py-8 text-center text-sm text-[#8B949E]">No sign-in activity recorded yet.</div>
+            ) : (
+              sessions.slice(0, 3).map((s, i) => (
+                <div key={s.id} className="flex items-center gap-4 px-5 py-3 border-b border-[#21262D]/50 last:border-0">
+                  <div className="w-9 h-9 rounded-lg bg-[#21262D] flex items-center justify-center"><Monitor size={16} className="text-[#8B949E]" /></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm flex items-center gap-2">
+                      {s.deviceType || 'Unknown device'}
+                      {i === 0 && <Badge variant="success" size="sm">Current</Badge>}
+                    </div>
+                    <div className="text-xs text-[#8B949E] truncate">
+                      {hideActivity
+                        ? `Hidden · ${formatDate(s.createdAt, 'relative')}`
+                        : [[s.city, s.country].filter(Boolean).join(', '), s.ipAddress, formatDate(s.createdAt, 'relative')].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardBody>
+        </Card>
+        </>
       )}
 
       {tab === 'security' && (

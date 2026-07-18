@@ -6,6 +6,7 @@ import { Logo } from '@/components/layout/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { COUNTRIES, flagUrl } from '@/lib/countries';
 import toast from 'react-hot-toast';
 
@@ -45,6 +46,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#0A0B0D]">
+      <div className="absolute top-4 right-4"><LanguageSwitcher compact /></div>
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center gap-3 mb-8 justify-center">
           <Logo size={40} />

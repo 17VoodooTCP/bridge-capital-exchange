@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, ChevronRight, Shield, Sparkles, TrendingUp, Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/Logo';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { SocialIcons } from '@/components/layout/SocialIcons';
 import { AssetIcon } from '@/components/ui/AssetIcon';
 import { CryptoConstellation } from '@/components/layout/CryptoConstellation';
@@ -105,6 +106,7 @@ export default function LandingPage() {
             </nav>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
             <Link href="/login" className="px-4 py-2 text-sm text-[#E6EDF3] hover:text-amber-400 transition-colors">Log In</Link>
             <Link href="/register"><Button size="sm">Sign Up</Button></Link>
           </div>

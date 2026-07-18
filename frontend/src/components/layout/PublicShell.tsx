@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { Logo } from './Logo';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 
 const footerCols = [
@@ -27,6 +28,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             <Link href="/contact" className="hover:text-[#E6EDF3]">Contact</Link>
           </nav>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
             <Link href="/login" className="px-4 py-2 text-sm hover:text-amber-400 transition-colors">Log In</Link>
             <Link href="/register"><Button size="sm">Sign Up</Button></Link>
           </div>

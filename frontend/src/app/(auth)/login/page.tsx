@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Mail, Lock, Shield, ArrowRight, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { CryptoConstellation } from '@/components/layout/CryptoConstellation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
+      <div className="absolute top-4 right-4 z-20"><LanguageSwitcher compact /></div>
       {/* Left brand panel */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-gradient-to-br from-[#0D1117] to-[#161B22] p-12 relative overflow-hidden">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-amber-500/10 blur-[120px] rounded-full" />
