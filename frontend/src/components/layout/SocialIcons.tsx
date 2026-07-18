@@ -32,11 +32,12 @@ export function SocialIcons({ className, iconClass }: { className?: string; icon
           rel="noopener noreferrer"
           aria-label={s.name}
           className={cn(
-            'w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.06] border border-white/10 text-[#8B949E] hover:text-white hover:bg-amber-500 hover:border-amber-500 transition-colors',
+            // Rounded tile treatment, matching the icons in the email footer
+            'w-10 h-10 flex items-center justify-center rounded-xl bg-[#6B7280] text-white hover:bg-amber-500 hover:scale-105 transition-all duration-200',
             iconClass,
           )}
         >
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true">
             <path d={s.path} />
           </svg>
         </a>

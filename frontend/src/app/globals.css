@@ -345,3 +345,15 @@ font {
   animation: ticker 40s linear infinite;
   will-change: transform;
 }
+
+/* ─── Card-back candlestick chart ─── */
+@keyframes candleIn {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+.candle {
+  animation: candleIn 480ms cubic-bezier(.2,.8,.3,1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .candle { animation: none; }
+}

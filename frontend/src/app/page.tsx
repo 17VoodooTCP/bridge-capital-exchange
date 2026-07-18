@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/Logo';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { SocialIcons } from '@/components/layout/SocialIcons';
+import { TrustBadges } from '@/components/layout/TrustBadges';
+import { PaymentCards } from '@/components/landing/PaymentCards';
 import { AssetIcon } from '@/components/ui/AssetIcon';
 import { CryptoConstellation } from '@/components/layout/CryptoConstellation';
 import { MiniSparkline } from '@/components/charts/MiniSparkline';
@@ -237,31 +239,7 @@ export default function LandingPage() {
       {/* ─── Cards / Pay ─── */}
       <section className="bg-[#F5F6F8] text-[#111318] py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 text-center">
-          <div className="card-swipe flex gap-5 overflow-x-auto pb-6 mb-8 px-[calc(50%-7rem)] snap-x snap-mandatory">
-            {[
-              { bg: 'bg-gradient-to-br from-gray-100 to-gray-300 text-[#111]', name: 'Silver', last: '4821' },
-              { bg: 'bg-gradient-to-br from-[#111318] to-[#2A2F36] text-white', name: 'Obsidian', last: '7390' },
-              { bg: 'bg-gradient-to-br from-amber-400 to-orange-500 text-black', name: 'Gold', last: '1024' },
-              { bg: 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white', name: 'Prime', last: '5567' },
-            ].map((c, i) => (
-              <div
-                key={i}
-                className={cn('relative w-56 h-36 rounded-2xl shadow-2xl p-4 text-left overflow-hidden shrink-0 snap-center', c.bg)}
-              >
-                <span className="shine" />
-                <div className="flex items-center gap-2">
-                  <Logo size={26} />
-                  <span className="text-xs font-bold tracking-wider">BRIDGE CAPITAL</span>
-                </div>
-                <div className="absolute top-4 right-4 text-[10px] font-semibold uppercase opacity-60">{c.name}</div>
-                <div className="absolute bottom-4 left-4 text-xs font-mono opacity-70">•••• {c.last}</div>
-                <div className="absolute bottom-4 right-4 flex -space-x-2">
-                  <div className="w-6 h-6 rounded-full bg-red-500/80" />
-                  <div className="w-6 h-6 rounded-full bg-amber-400/80" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <PaymentCards />
           <p className="text-xs text-[#8B949E] mb-8 flex items-center justify-center gap-1.5"><span className="hidden sm:inline">←</span> Swipe to explore all cards <span className="hidden sm:inline">→</span></p>
           <h2 className="text-2xl lg:text-4xl font-bold mb-6">Live crypto. Pay anywhere. Get 10% back.</h2>
           <Button onClick={() => router.push('/register')}>Get My Card</Button>
@@ -509,6 +487,11 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+          {/* Trust badges */}
+          <div className="mt-14 pt-10 border-t border-white/[0.06] text-[#8B949E]">
+            <TrustBadges />
+          </div>
+
           <div className="mt-8 text-sm text-[#8B949E]">
             Support: <a href="mailto:support@bridgecapitalv1.com" className="text-amber-400 hover:text-amber-300">support@bridgecapitalv1.com</a>
           </div>

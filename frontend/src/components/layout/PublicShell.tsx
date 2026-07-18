@@ -2,6 +2,8 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { SocialIcons } from './SocialIcons';
+import { TrustBadges } from './TrustBadges';
 import { Button } from '@/components/ui/button';
 
 const footerCols = [
@@ -43,7 +45,8 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4"><Logo size={34} /><span className="font-bold text-sm">Bridge Capital</span></div>
-              <p className="text-xs text-[#8B949E]">Multi-asset trading for crypto, stocks and ETFs.</p>
+              <p className="text-xs text-[#8B949E] mb-4">Multi-asset trading for crypto, stocks and ETFs.</p>
+              <SocialIcons />
             </div>
             {footerCols.map((col) => (
               <div key={col.h}>
@@ -56,6 +59,10 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
               </div>
             ))}
           </div>
+          <div className="mt-14 pt-10 border-t border-white/[0.06] text-[#8B949E]">
+            <TrustBadges />
+          </div>
+
           <div className="mt-8 text-sm text-[#8B949E]">
             Support: <a href="mailto:support@bridgecapitalv1.com" className="text-amber-400 hover:text-amber-300">support@bridgecapitalv1.com</a>
           </div>
