@@ -89,8 +89,16 @@ export class AdminService {
   }
 
   listUsers(query?: string, page = 1, pageSize = 50) {
+    // Customer list only — staff accounts aren't customers and were showing up
+    // as $0 "users" with no balances.
+    const where = {
+      role: 'USER' as const,
+      ...(query
+        ? { OR: [{ email: { contains: query, mode: 'insensitive' as const } }, { name: { contains: query, mode: 'insensitive' as const } }] }
+        : {}),
+    };
     return this.prisma.user.findMany({
-      where: query ? { OR: [{ email: { contains: query, mode: 'insensitive' } }, { name: { contains: query, mode: 'insensitive' } }] } : undefined,
+      where,
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: { createdAt: 'desc' },
@@ -173,7 +181,19 @@ export class AdminService {
   async deleteUser(adminId: string, userId: string, ipAddress?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true, email: true } }).catch(() => null);
     if (!user) throw new BadRequestException('User not found');
-    if (user.role === 'SUPER_ADMIN') throw new BadRequestException('Cannot delete a super admin account');
+    if (adminId === userId) throw new BadRequestException('You cannot delete the account you are signed in with.');
+
+    // Deleting the last remaining admin would lock everyone out of the panel.
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+      const otherAdmins = await this.prisma.user.count({
+        where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] }, id: { not: userId } },
+      });
+      if (otherAdmins === 0) {
+        throw new BadRequestException(
+          'This is the only administrator account — deleting it would lock you out of the admin panel. Create another admin first, then delete this one.',
+        );
+      }
+    }
     await this.prisma.adminLog.create({
       data: { adminId, action: 'DELETE_ACCOUNT', targetId: userId, targetType: 'USER', details: { email: user.email }, ipAddress },
     }).catch(() => null);

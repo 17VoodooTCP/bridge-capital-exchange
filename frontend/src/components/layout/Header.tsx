@@ -205,7 +205,7 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
                   <Settings size={15} />
                   Settings
                 </Link>
-                {user?.role === 'ADMIN' && (
+                {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
                   <Link
                     href="/admin"
                     onClick={() => setShowUserMenu(false)}

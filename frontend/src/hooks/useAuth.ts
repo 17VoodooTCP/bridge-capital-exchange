@@ -15,7 +15,9 @@ export function useAuth() {
       const data = await authApi.login(credentials);
       setAuth(data.user, data.accessToken, data.refreshToken);
       toast.success(`Welcome back, ${data.user.name}!`);
-      router.push('/dashboard');
+      // Staff land in the admin panel, not the customer dashboard
+      const isStaff = data.user.role === 'ADMIN' || data.user.role === 'SUPER_ADMIN';
+      router.push(isStaff ? '/admin' : '/dashboard');
       return data;
     },
     [setAuth, router]
