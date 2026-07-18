@@ -97,7 +97,8 @@ export class AuthService {
         where: { id: user.id },
         data: { resetTokenHash, resetTokenExpires: new Date(Date.now() + 30 * 60 * 1000) },
       });
-      const link = `${process.env.FRONTEND_URL || ''}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+      const base = (process.env.FRONTEND_URL || 'https://bridgecapitalv1.com').replace(/\/$/, '');
+      const link = `${base}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
       await this.notifications.sendEmail(
         email,
         'Reset your password',

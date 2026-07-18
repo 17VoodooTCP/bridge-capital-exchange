@@ -4,6 +4,7 @@ import { Clock, TrendingUp, TrendingDown, Minus, ExternalLink, Newspaper } from 
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { mockNews, mockSignals } from '@/lib/mockData';
+import { PriceTicker } from '@/components/layout/PriceTicker';
 import { FINNHUB_KEY } from '@/lib/logos';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
 
@@ -112,6 +113,9 @@ export default function NewsPage() {
         </div>
         {isLive && <Badge variant="success" dot>Live feed · updates every 2 min</Badge>}
       </div>
+
+      {/* Live crypto / stock / ETF prices + 24h change */}
+      <PriceTicker />
 
       <div className="flex flex-wrap gap-2">
         {CATEGORIES.map((c) => (
