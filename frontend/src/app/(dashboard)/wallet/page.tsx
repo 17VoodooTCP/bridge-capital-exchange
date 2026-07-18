@@ -76,7 +76,8 @@ export default function WalletPage() {
                 <Button leftIcon={<ArrowDownLeft size={16} />} onClick={() => setDeposit({ open: true, symbol: 'USDT' })}>Deposit Funds</Button>
               </div>
             ) : (
-              <table className="w-full">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px]">
                 <thead><tr className="text-xs text-[#8B949E] uppercase border-b border-[#21262D]">
                   <th className="text-left px-5 py-3 font-semibold">Asset</th>
                   <th className="text-right px-5 py-3 font-semibold">Available</th>
@@ -106,6 +107,7 @@ export default function WalletPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </CardBody>
         </Card>
