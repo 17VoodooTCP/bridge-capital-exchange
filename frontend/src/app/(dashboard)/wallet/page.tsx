@@ -76,37 +76,28 @@ export default function WalletPage() {
                 <Button leftIcon={<ArrowDownLeft size={16} />} onClick={() => setDeposit({ open: true, symbol: 'USDT' })}>Deposit Funds</Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px]">
-                <thead><tr className="text-xs text-[#8B949E] uppercase border-b border-[#21262D]">
-                  <th className="text-left px-5 py-3 font-semibold">Asset</th>
-                  <th className="text-right px-5 py-3 font-semibold">Available</th>
-                  <th className="text-right px-5 py-3 font-semibold hidden sm:table-cell">In Order</th>
-                  <th className="text-right px-5 py-3 font-semibold">Value</th>
-                  <th className="text-right px-5 py-3 font-semibold">Actions</th>
-                </tr></thead>
-                <tbody>
-                  {balances.map((b) => (
-                    <tr key={b.asset} className="border-b border-[#21262D]/50 last:border-0 hover:bg-[#1C2128] transition-colors">
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <AssetIcon symbol={b.symbol} fallback={b.icon} size={36} />
-                          <div><div className="font-medium">{b.symbol}</div><div className="text-xs text-[#8B949E]">{b.name}</div></div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 text-right">{mask(b.available.toFixed(6))}</td>
-                      <td className="px-5 py-3 text-right text-[#8B949E] hidden sm:table-cell">{mask(b.locked.toFixed(6))}</td>
-                      <td className="px-5 py-3 text-right font-medium">{mask(formatCurrency(b.usdValue))}</td>
-                      <td className="px-5 py-3">
-                        <div className="flex gap-1 justify-end">
-                          <Button size="xs" variant="outline" onClick={() => setDeposit({ open: true, symbol: b.symbol })}>Deposit</Button>
-                          <Button size="xs" variant="ghost" onClick={() => setWithdraw({ open: true, symbol: b.symbol })}>Withdraw</Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div>
+                {/* Column labels (hidden on mobile) */}
+                <div className="hidden sm:flex items-center text-xs text-[#8B949E] uppercase border-b border-[#21262D] px-5 py-3 font-semibold">
+                  <div className="flex-1">Asset</div>
+                  <div className="w-40 text-right">Available</div>
+                  <div className="w-40 text-right">Value</div>
+                </div>
+                {balances.map((b) => (
+                  <div key={b.asset} className="flex items-center gap-3 px-4 sm:px-5 py-3 border-b border-[#21262D]/50 last:border-0 hover:bg-[#1C2128] transition-colors">
+                    <AssetIcon symbol={b.symbol} fallback={b.icon} size={36} />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium">{b.symbol}</div>
+                      <div className="text-xs text-[#8B949E] truncate">{b.name}</div>
+                    </div>
+                    {/* Available shown as its own column on desktop, inline under value on mobile */}
+                    <div className="hidden sm:block w-40 text-right tabular-nums">{mask(b.available.toFixed(6))}</div>
+                    <div className="w-auto sm:w-40 text-right shrink-0">
+                      <div className="font-medium tabular-nums break-all">{mask(formatCurrency(b.usdValue))}</div>
+                      <div className="text-xs text-[#8B949E] tabular-nums sm:hidden">{mask(b.available.toFixed(6))} {b.symbol}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardBody>
