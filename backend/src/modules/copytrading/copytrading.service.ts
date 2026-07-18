@@ -127,6 +127,8 @@ export class CopyTradingService {
       title: 'Copy trade connected',
       body: `You are now copying ${trader.name} (${trader.strategy}) with ${allocation} ${asset}. Trades from this strategy will be mirrored to your allocated balance.`,
       type: 'GENERAL',
+      email: true,
+      event: 'copyTrade',
     });
 
     return position;
@@ -171,6 +173,8 @@ export class CopyTradingService {
       title: 'Copy trade disconnected',
       body: `You have stopped copying ${pos.trader.name}. Your allocation of ${pos.allocation} ${pos.asset} has been returned to your wallet.`,
       type: 'GENERAL',
+      email: true,
+      event: 'copyTrade',
     });
 
     return updated;
@@ -199,6 +203,8 @@ export class CopyTradingService {
       title: 'Copy trading P&L updated',
       body: `Your copy position P&L is now ${Number(pnl) >= 0 ? '+' : ''}${Number(pnl)} ${pos.asset}.`,
       type: 'GENERAL',
+      email: true,
+      event: 'copyTrade',
     });
     return updated;
   }

@@ -12,7 +12,7 @@ const DEFAULT_EMAIL_FLAGS: Record<EmailEvent, boolean> = {
   fundAdjustment: true,
   kyc: true,
   security: true,
-  copyTrade: false,
+  copyTrade: true,
 };
 const FLAGS_KEY = 'notif_email_flags';
 

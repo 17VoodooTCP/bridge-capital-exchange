@@ -1,10 +1,14 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { assertNotHeld } from '../../common/account.util';
 
 @Injectable()
 export class EarnService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   getPlans() {
     return this.prisma.stakingPlan.findMany({ where: { isActive: true } }).catch(() => []);
@@ -59,6 +63,13 @@ export class EarnService {
       }),
     ]);
 
+    await this.notifications.notify(userId, {
+      title: 'Staking position opened',
+      body: `You've staked ${dto.amount} ${plan.asset} into ${plan.name} at ${plan.apr}% APR. Rewards accrue automatically and will be credited to your balance.`,
+      type: 'TRANSACTION',
+      email: true,
+    });
+
     return position;
   }
 
@@ -101,6 +112,13 @@ export class EarnService {
         },
       }),
     ]);
+
+    await this.notifications.notify(userId, {
+      title: 'Staking position closed',
+      body: `You've unstaked from ${pos.plan.name}. ${total} ${pos.plan.asset} (including ${pos.earned} ${pos.plan.asset} in rewards) has been returned to your wallet.`,
+      type: 'TRANSACTION',
+      email: true,
+    });
 
     return updated;
   }

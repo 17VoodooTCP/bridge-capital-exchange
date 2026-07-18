@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, ChevronRight, Shield, Sparkles, TrendingUp, Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/Logo';
+import { SocialIcons } from '@/components/layout/SocialIcons';
 import { AssetIcon } from '@/components/ui/AssetIcon';
 import { CryptoConstellation } from '@/components/layout/CryptoConstellation';
 import { MiniSparkline } from '@/components/charts/MiniSparkline';
@@ -490,11 +491,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4"><Logo size={34} /><span className="font-bold text-sm">Bridge Capital</span></div>
-              <div className="flex gap-2">
-                {['𝕏', 'in', 'f', '▶'].map((s, i) => (
-                  <div key={i} className={cn(glass, 'w-8 h-8 flex items-center justify-center text-xs text-[#8B949E] hover:text-amber-400 cursor-pointer transition-colors')}>{s}</div>
-                ))}
-              </div>
+              <SocialIcons />
             </div>
             {[
               { h: 'About', links: [['About Us', '/about'], ['Careers', '/careers'], ['Press Room', '/about#press'], ['Announcements', '/about#announcements'], ['Risk Disclosure', '/legal#risk']] },

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemeToggle } from './ThemeToggle';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { Badge } from '@/components/ui/badge';
 import { cn, getInitials, formatDate } from '@/lib/utils';
 import api from '@/lib/api';
@@ -106,6 +107,7 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
+        <LanguageSwitcher />
         <ThemeToggle />
 
         {/* Notifications */}

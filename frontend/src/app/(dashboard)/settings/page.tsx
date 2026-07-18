@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
 import { KYC_STATUS_LABELS } from '@/lib/constants';
 import { formatDate, getInitials, cn } from '@/lib/utils';
+import { COUNTRIES, flagUrl } from '@/lib/countries';
 import toast from 'react-hot-toast';
 
 const DOC_TYPES = [
@@ -35,9 +36,13 @@ export default function SettingsPage() {
   const [twoFA, setTwoFA] = useState(user?.twoFactorEnabled ?? false);
   const [notifs, setNotifs] = useState({ trades: true, deposits: true, security: true, marketing: false, priceAlerts: true });
 
-  // Profile form seeded from the real logged-in user
-  const [profile, setProfile] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', country: user?.country || '' });
+  // Profile form seeded from the real logged-in user. Phone is split into a
+  // country dial-code (with flag) + the local number.
+  const [profile, setProfile] = useState({ name: user?.name || '', email: user?.email || '', phone: '', country: user?.country || '' });
+  const [phoneDial, setPhoneDial] = useState('+1');
   const [savingProfile, setSavingProfile] = useState(false);
+  // Privacy: hide device/location activity on the Devices tab
+  const [hideActivity, setHideActivity] = useState(false);
 
   // KYC
   const [docType, setDocType] = useState('PASSPORT');
@@ -51,7 +56,11 @@ export default function SettingsPage() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
 
   useEffect(() => {
-    if (user) setProfile({ name: user.name || '', email: user.email || '', phone: user.phone || '', country: user.country || '' });
+    if (!user) return;
+    // Split a stored "+1 555…" into dial + local number for the editor
+    const m = (user.phone || '').match(/^(\+\d{1,4})\s*(.*)$/);
+    if (m) setPhoneDial(m[1]);
+    setProfile({ name: user.name || '', email: user.email || '', phone: m ? m[2] : (user.phone || ''), country: user.country || '' });
   }, [user]);
 
   useEffect(() => {
@@ -63,9 +72,10 @@ export default function SettingsPage() {
 
   const saveProfile = async () => {
     setSavingProfile(true);
+    const fullPhone = profile.phone ? `${phoneDial} ${profile.phone}`.trim() : '';
     try {
-      await api.patch('/users/me', { name: profile.name, phone: profile.phone, country: profile.country });
-      updateUser({ name: profile.name, phone: profile.phone, country: profile.country });
+      await api.patch('/users/me', { name: profile.name, phone: fullPhone, country: profile.country });
+      updateUser({ name: profile.name, phone: fullPhone, country: profile.country });
       toast.success('Profile updated');
     } catch {
       toast.error('Could not save profile');
@@ -151,8 +161,32 @@ export default function SettingsPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <Input label="Full Name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
               <Input label="Email" type="email" value={profile.email} disabled hint="Contact support to change your email" />
-              <Input label="Phone" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="+1 ..." />
-              <Input label="Country" value={profile.country} onChange={(e) => setProfile({ ...profile, country: e.target.value })} />
+
+              {/* Phone with country dial-code + real flag */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-[#8B949E]">Phone</label>
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1.5 bg-[#111318] border border-[#21262D] rounded-lg px-2.5 focus-within:border-amber-500/60">
+                    {(() => { const c = COUNTRIES.find((x) => x.dial === phoneDial); return <img src={flagUrl(c?.iso || 'un', 20)} alt="" width={20} height={15} className="rounded-sm shrink-0" />; })()}
+                    <select value={phoneDial} onChange={(e) => setPhoneDial(e.target.value)} className="bg-transparent text-sm text-[#E6EDF3] outline-none py-2.5 max-w-[86px]">
+                      {COUNTRIES.filter((c) => c.dial !== '+').map((c) => <option key={c.iso} value={c.dial} className="bg-[#161B22]">{c.iso.toUpperCase()} {c.dial}</option>)}
+                    </select>
+                  </div>
+                  <Input containerClassName="flex-1" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="555 123 4567" />
+                </div>
+              </div>
+
+              {/* Country with real flag */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-[#8B949E]">Country</label>
+                <div className="flex items-center gap-2 bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2.5 focus-within:border-amber-500/60">
+                  {(() => { const c = COUNTRIES.find((x) => x.name === profile.country); return c ? <img src={flagUrl(c.iso, 20)} alt="" width={20} height={15} className="rounded-sm shrink-0" /> : null; })()}
+                  <select value={profile.country} onChange={(e) => setProfile({ ...profile, country: e.target.value })} className="flex-1 bg-transparent text-sm text-[#E6EDF3] outline-none">
+                    <option value="" className="bg-[#161B22]">Select country</option>
+                    {COUNTRIES.map((c) => <option key={c.iso + c.name} value={c.name} className="bg-[#161B22]">{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
             </div>
             <Button isLoading={savingProfile} onClick={saveProfile}>Save Changes</Button>
           </CardBody>
@@ -318,7 +352,13 @@ export default function SettingsPage() {
 
       {tab === 'devices' && (
         <Card>
-          <CardHeader><h3 className="font-semibold flex items-center gap-2"><Smartphone size={16} className="text-amber-400" /> Active Sessions</h3></CardHeader>
+          <CardHeader className="flex items-center justify-between gap-3">
+            <h3 className="font-semibold flex items-center gap-2"><Smartphone size={16} className="text-amber-400" /> Active Sessions</h3>
+            <label className="flex items-center gap-2 text-xs text-[#8B949E] cursor-pointer">
+              Hide device &amp; location
+              <Toggle on={hideActivity} onClick={() => setHideActivity(!hideActivity)} />
+            </label>
+          </CardHeader>
           <CardBody className="p-0">
             {sessionsLoading ? (
               <div className="p-5 space-y-3">{[1, 2].map((i) => <div key={i} className="skeleton h-12 rounded-lg" />)}</div>
@@ -334,7 +374,9 @@ export default function SettingsPage() {
                       {i === 0 && <Badge variant="success" size="sm">Most recent</Badge>}
                     </div>
                     <div className="text-xs text-[#8B949E]">
-                      {[s.country, s.ipAddress, s.carrier, formatDate(s.createdAt, 'relative')].filter(Boolean).join(' · ')}
+                      {hideActivity
+                        ? `Hidden · ${formatDate(s.createdAt, 'relative')}`
+                        : [s.country, s.ipAddress, s.carrier, formatDate(s.createdAt, 'relative')].filter(Boolean).join(' · ')}
                     </div>
                   </div>
                   {i !== 0 && (

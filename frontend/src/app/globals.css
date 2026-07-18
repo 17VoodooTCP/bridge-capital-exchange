@@ -314,3 +314,24 @@ html.light picture,
 html.light [data-noinvert] {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* ─── Google Translate widget: hide its injected banner/tooltips ─── */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-gadget-icon,
+#goog-gt-tt,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+.goog-te-gadget {
+  height: 0;
+  overflow: hidden;
+}
+body {
+  top: 0 !important;
+}
+/* Google wraps translated text in <font> tags — keep them inheriting styles */
+font {
+  background: transparent !important;
+  box-shadow: none !important;
+}

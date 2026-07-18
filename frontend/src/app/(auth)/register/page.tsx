@@ -1,14 +1,13 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { Mail, Lock, User, Globe, ArrowRight, Check, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Check, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/layout/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
+import { COUNTRIES, flagUrl } from '@/lib/countries';
 import toast from 'react-hot-toast';
-
-const COUNTRIES = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Singapore', 'Japan', 'India', 'Brazil', 'Other'];
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -77,9 +76,10 @@ export default function RegisterPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-[#8B949E]">Country</label>
               <div className="flex items-center gap-2 bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2.5 focus-within:border-amber-500/60">
-                <Globe size={15} className="text-[#8B949E]" />
+                {/* Real flag of the selected country */}
+                {(() => { const c = COUNTRIES.find((x) => x.name === form.country); return c ? <img src={flagUrl(c.iso, 20)} alt="" width={20} height={15} className="rounded-sm shrink-0" /> : null; })()}
                 <select value={form.country} onChange={(e) => set('country', e.target.value)} className="flex-1 bg-transparent text-sm text-[#E6EDF3] outline-none">
-                  {COUNTRIES.map((c) => <option key={c} value={c} className="bg-[#161B22]">{c}</option>)}
+                  {COUNTRIES.map((c) => <option key={c.iso + c.name} value={c.name} className="bg-[#161B22]">{c.name}</option>)}
                 </select>
               </div>
             </div>
