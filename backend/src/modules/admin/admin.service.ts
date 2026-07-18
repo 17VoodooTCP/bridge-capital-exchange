@@ -139,6 +139,7 @@ export class AdminService {
           : `-${dto.amount} ${dto.asset} has been debited from your wallet.`,
         type: 'TRANSACTION',
         email: true,
+        event: 'fundAdjustment',
       });
     }
 

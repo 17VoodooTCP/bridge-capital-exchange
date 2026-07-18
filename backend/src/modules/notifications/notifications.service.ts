@@ -2,12 +2,51 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 type NotifType = 'GENERAL' | 'TRANSACTION' | 'SECURITY' | 'KYC' | 'ACCOUNT';
+export type EmailEvent = 'welcome' | 'deposit' | 'withdrawal' | 'fundAdjustment' | 'kyc' | 'security' | 'copyTrade';
+
+// Which events email the user by default. Admins can override in settings.
+const DEFAULT_EMAIL_FLAGS: Record<EmailEvent, boolean> = {
+  welcome: true,
+  deposit: true,
+  withdrawal: true,
+  fundAdjustment: true,
+  kyc: true,
+  security: true,
+  copyTrade: false,
+};
+const FLAGS_KEY = 'notif_email_flags';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  // ─── Per-event email settings (admin-configurable) ────────────────
+
+  async getEmailFlags(): Promise<Record<EmailEvent, boolean>> {
+    const row = await this.prisma.appSetting.findUnique({ where: { key: FLAGS_KEY } }).catch(() => null);
+    if (!row) return { ...DEFAULT_EMAIL_FLAGS };
+    try {
+      return { ...DEFAULT_EMAIL_FLAGS, ...(JSON.parse(row.value) as Record<EmailEvent, boolean>) };
+    } catch {
+      return { ...DEFAULT_EMAIL_FLAGS };
+    }
+  }
+
+  async setEmailFlags(flags: Partial<Record<EmailEvent, boolean>>) {
+    const merged = { ...(await this.getEmailFlags()), ...flags };
+    await this.prisma.appSetting
+      .upsert({ where: { key: FLAGS_KEY }, create: { key: FLAGS_KEY, value: JSON.stringify(merged) }, update: { value: JSON.stringify(merged) } })
+      .catch(() => null);
+    return merged;
+  }
+
+  private async emailAllowed(event?: EmailEvent): Promise<boolean> {
+    if (!event) return true; // untagged emails always send
+    const flags = await this.getEmailFlags();
+    return flags[event] !== false;
+  }
 
   // ─── In-app notifications ─────────────────────────────────────────
 
@@ -35,13 +74,14 @@ export class NotificationsService {
    */
   async notify(
     userId: string,
-    opts: { title: string; body: string; type?: NotifType; email?: boolean },
+    opts: { title: string; body: string; type?: NotifType; email?: boolean; event?: EmailEvent },
   ) {
+    // In-app notification always records, regardless of the email setting.
     await this.prisma.notification
       .create({ data: { userId, title: opts.title, body: opts.body, type: opts.type || 'GENERAL' } })
       .catch(() => null);
 
-    if (opts.email) {
+    if (opts.email && (await this.emailAllowed(opts.event))) {
       const user = await this.prisma.user
         .findUnique({ where: { id: userId }, select: { email: true, name: true } })
         .catch(() => null);

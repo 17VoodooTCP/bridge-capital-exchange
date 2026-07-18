@@ -33,6 +33,7 @@ export class WalletService {
       body: `Your deposit of ${dto.amount} ${dto.asset}${dto.network ? ` via ${dto.network}` : ''} has been detected and is awaiting network confirmation. Funds will be credited automatically.`,
       type: 'TRANSACTION',
       email: true,
+      event: 'deposit',
     });
     await this.notifications.notifyAdmin(
       'New deposit pending approval',
@@ -64,6 +65,7 @@ export class WalletService {
       body: `Your withdrawal of ${dto.amount} ${dto.asset} to ${dto.toAddress.slice(0, 10)}…${dto.toAddress.slice(-6)} (${dto.network}) is being reviewed. You'll be notified once it's processed.`,
       type: 'TRANSACTION',
       email: true,
+      event: 'withdrawal',
     });
     await this.notifications.notifyAdmin(
       'Withdrawal request needs review',

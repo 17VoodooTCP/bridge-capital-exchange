@@ -40,6 +40,7 @@ export class KycService {
     if (doc) {
       await this.prisma.user.update({ where: { id: doc.userId }, data: { kycStatus: decision } }).catch(() => null);
       await this.notifications.notify(doc.userId, {
+        event: 'kyc' as const,
         title: decision === 'APPROVED' ? 'Identity verification approved ✓' : 'Identity verification rejected',
         body: decision === 'APPROVED'
           ? 'Your KYC documents were approved. You now have full access to deposits, withdrawals, and trading.'

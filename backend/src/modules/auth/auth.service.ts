@@ -28,6 +28,7 @@ export class AuthService {
       body: 'Your account has been created successfully. Complete KYC verification in Settings to unlock deposits, withdrawals, and full trading limits.',
       type: 'ACCOUNT',
       email: true,
+      event: 'welcome',
     });
     await this.notifications.notifyAdmin(
       'New user registration',
@@ -80,6 +81,7 @@ export class AuthService {
         body: `A sign-in to your account was detected from ${deviceType}${meta?.ip ? ` (IP ${meta.ip})` : ''}. If this wasn't you, change your password immediately and contact support.`,
         type: 'SECURITY',
         email: true,
+        event: 'security',
       });
     }
   }
@@ -131,6 +133,7 @@ export class AuthService {
       body: 'Your account password was just reset. If this was not you, contact support immediately.',
       type: 'SECURITY',
       email: true,
+      event: 'security',
     });
     return { success: true };
   }

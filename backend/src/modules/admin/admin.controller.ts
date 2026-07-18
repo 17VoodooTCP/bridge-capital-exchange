@@ -23,6 +23,17 @@ export class AdminController {
   @Get('stats')
   stats() { return this.admin.stats(); }
 
+  // Per-event email notification settings
+  @Get('notification-settings')
+  getNotifSettings() {
+    return this.notifications.getEmailFlags();
+  }
+
+  @Patch('notification-settings')
+  setNotifSettings(@Body() body: Record<string, boolean>) {
+    return this.notifications.setEmailFlags(body as never);
+  }
+
   // Send the P2P order-completion email (branded, matches the reference design)
   @Post('send-order-email')
   sendOrderEmail(@Body() body: { to: string; name?: string; side?: 'Buy' | 'Sell'; orderId: string; createdAt?: string; fiatAmount: string; cryptoQuantity: string }) {

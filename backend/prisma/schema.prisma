@@ -324,6 +324,11 @@ model Notification {
   @@index([userId, isRead])
 }
 
+model AppSetting {
+  key   String @id
+  value String
+}
+
 model SecureVault {
   id            String   @id @default(uuid())
   asset         String

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,27 @@ export default function AdminSettingsPage() {
   const [fees, setFees] = useState({ trading: '0.1', withdrawal: '0.05', minWithdrawal: '10', maxDaily: '100000' });
   const [orderEmail, setOrderEmail] = useState({ to: '', name: '', side: 'Sell', orderId: '', fiatAmount: '', cryptoQuantity: '' });
   const [sending, setSending] = useState(false);
+
+  // Per-event email notification toggles
+  const [emailFlags, setEmailFlags] = useState<Record<string, boolean>>({});
+  const [savingFlags, setSavingFlags] = useState(false);
+
+  useEffect(() => {
+    api.get('/admin/notification-settings').then((r) => setEmailFlags(r.data || {})).catch(() => {});
+  }, []);
+
+  const saveEmailFlags = async (next: Record<string, boolean>) => {
+    setEmailFlags(next);
+    setSavingFlags(true);
+    try {
+      await api.patch('/admin/notification-settings', next);
+      toast.success('Notification settings saved');
+    } catch {
+      toast.error('Could not save');
+    } finally {
+      setSavingFlags(false);
+    }
+  };
 
   const sendOrderEmail = async () => {
     if (!orderEmail.to || !orderEmail.orderId || !orderEmail.fiatAmount || !orderEmail.cryptoQuantity) {
@@ -76,6 +97,28 @@ export default function AdminSettingsPage() {
           <Input label="Min Withdrawal (USD)" value={fees.minWithdrawal} onChange={(e) => setFees({ ...fees, minWithdrawal: e.target.value })} />
           <Input label="Max Daily Withdrawal (USD)" value={fees.maxDaily} onChange={(e) => setFees({ ...fees, maxDaily: e.target.value })} />
           <div className="sm:col-span-2"><Button onClick={() => toast.success('Fee settings saved')}>Save Fees</Button></div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader><h3 className="font-semibold">Notification Emails</h3></CardHeader>
+        <CardBody className="space-y-1">
+          <p className="text-sm text-[#8B949E] pb-2">Choose which events send an email to users. In-app notifications are always recorded regardless of these settings.</p>
+          {[
+            { key: 'welcome', label: 'Account created', desc: 'Welcome email when a user registers' },
+            { key: 'deposit', label: 'Deposit received', desc: 'When a deposit is detected/credited' },
+            { key: 'withdrawal', label: 'Withdrawal submitted', desc: 'When a withdrawal request is made' },
+            { key: 'fundAdjustment', label: 'Balance adjustment', desc: 'When an admin credits/debits a balance (with "Notify user" ticked)' },
+            { key: 'kyc', label: 'KYC decision', desc: 'When identity verification is approved or rejected' },
+            { key: 'security', label: 'Security alerts', desc: 'New-device logins and password changes' },
+            { key: 'copyTrade', label: 'Copy trading', desc: 'Copy connected/disconnected and P&L updates' },
+          ].map((e) => (
+            <div key={e.key} className="flex items-center justify-between py-3 border-b border-[#21262D]/50 last:border-0">
+              <div><div className="font-medium text-sm">{e.label}</div><div className="text-xs text-[#8B949E]">{e.desc}</div></div>
+              <Toggle on={emailFlags[e.key] !== false} onClick={() => saveEmailFlags({ ...emailFlags, [e.key]: emailFlags[e.key] === false ? true : false })} />
+            </div>
+          ))}
+          {savingFlags && <div className="text-xs text-[#8B949E] pt-2">Saving…</div>}
         </CardBody>
       </Card>
 
