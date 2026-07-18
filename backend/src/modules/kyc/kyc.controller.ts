@@ -23,6 +23,11 @@ export class KycController {
     return this.kyc.getStatus(userId);
   }
 
+  @Post('limit-increase')
+  limitIncrease(@CurrentUser('userId') userId: string, @Body() dto: { requestedLimit: number; reason?: string }) {
+    return this.kyc.requestLimitIncrease(userId, dto);
+  }
+
   @UseGuards(RolesGuard)
   @Roles('ADMIN', 'SUPER_ADMIN')
   @Get('pending')

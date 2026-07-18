@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -22,6 +22,43 @@ export class KycService {
       `${user?.name || 'A user'} (${user?.email || userId}) submitted a ${dto.type.replace(/_/g, ' ').toLowerCase()} for identity verification. Review it in Admin → KYC Review.`,
     );
     return result;
+  }
+
+  /**
+   * User-initiated request to raise their withdrawal limit. Alerts staff for
+   * manual review and confirms to the user in-app + by email.
+   */
+  async requestLimitIncrease(
+    userId: string,
+    dto: { requestedLimit: number; reason?: string },
+  ) {
+    if (!dto?.requestedLimit || Number(dto.requestedLimit) <= 0) {
+      throw new BadRequestException('Enter the daily withdrawal limit you need.');
+    }
+    const user = await this.prisma.user
+      .findUnique({ where: { id: userId }, select: { name: true, email: true, kycStatus: true } })
+      .catch(() => null);
+
+    if (user && user.kycStatus !== 'APPROVED') {
+      throw new BadRequestException('Complete identity verification before requesting a higher limit.');
+    }
+
+    const limit = Number(dto.requestedLimit).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+    await this.notifications.notifyAdmin(
+      'Withdrawal limit increase requested',
+      `${user?.name || 'A user'} (${user?.email || userId}) requested a daily withdrawal limit of ${limit}.${dto.reason ? ` Reason: ${dto.reason}` : ''} Review it in Admin → Users.`,
+    );
+
+    await this.notifications.notify(userId, {
+      title: 'Limit increase request received',
+      body: `We've received your request to raise your daily withdrawal limit to ${limit}. Our compliance team will review it and respond within 1-2 business days.`,
+      type: 'KYC',
+      email: true,
+      event: 'kyc',
+    });
+
+    return { success: true };
   }
 
   getStatus(userId: string) {

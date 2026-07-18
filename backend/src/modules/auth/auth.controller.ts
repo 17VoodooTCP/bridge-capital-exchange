@@ -5,6 +5,17 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
+/**
+ * Real client IP: prefer the first entry of X-Forwarded-For (set by Render's
+ * proxy), fall back to req.ip, and strip the IPv6-mapped IPv4 prefix so the
+ * value is a plain address that geolocation can resolve.
+ */
+function clientIp(req: any): string | undefined {
+  const fwd = req.headers?.['x-forwarded-for'];
+  const raw = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim() || req.ip;
+  return typeof raw === 'string' ? raw.replace(/^::ffff:/, '') : undefined;
+}
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -12,12 +23,12 @@ export class AuthController {
 
   @Post('register')
   register(@Body() dto: RegisterDto, @Req() req: any) {
-    return this.auth.register(dto, { ip: req.ip, userAgent: req.headers['user-agent'] });
+    return this.auth.register(dto, { ip: clientIp(req), userAgent: req.headers['user-agent'] });
   }
 
   @Post('login')
   login(@Body() dto: LoginDto, @Req() req: any) {
-    return this.auth.login(dto, { ip: req.ip, userAgent: req.headers['user-agent'] });
+    return this.auth.login(dto, { ip: clientIp(req), userAgent: req.headers['user-agent'] });
   }
 
   @ApiBearerAuth()

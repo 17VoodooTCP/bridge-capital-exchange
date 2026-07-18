@@ -7,6 +7,11 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Render (and any reverse proxy) forwards the real client IP in
+  // X-Forwarded-For. Without this, req.ip is the proxy's private address, so
+  // login sessions record a useless IP and geolocation can't resolve a city.
+  app.getHttpAdapter().getInstance().set('trust proxy', true);
+
   // Chat attachments and QR uploads are inlined as base64 data URLs, which far
   // exceed the default 100kb body limit — raise it so those requests succeed.
   app.use(json({ limit: '15mb' }));

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { User, Shield, Bell, ShieldCheck, Smartphone, Check, Monitor, X, QrCode, Clock, Upload, FileText } from 'lucide-react';
+import { User, Shield, Bell, ShieldCheck, Smartphone, Check, Monitor, X, QrCode, Clock, Upload, FileText, TrendingUp } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/card';
 import { Tabs } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +55,32 @@ export default function SettingsPage() {
   // Devices
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
+
+  // Withdrawal limit increase request
+  const [limitOpen, setLimitOpen] = useState(false);
+  const [limitReq, setLimitReq] = useState({ requestedLimit: '', reason: '' });
+  const [requestingLimit, setRequestingLimit] = useState(false);
+
+  const requestLimit = async () => {
+    if (!limitReq.requestedLimit || Number(limitReq.requestedLimit) <= 0) {
+      return toast.error('Enter the daily limit you need');
+    }
+    setRequestingLimit(true);
+    try {
+      await api.post('/kyc/limit-increase', {
+        requestedLimit: Number(limitReq.requestedLimit),
+        reason: limitReq.reason || undefined,
+      });
+      toast.success('Request submitted — our compliance team will respond within 1-2 business days.');
+      setLimitReq({ requestedLimit: '', reason: '' });
+      setLimitOpen(false);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || 'Could not submit the request.');
+    } finally {
+      setRequestingLimit(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -139,7 +165,7 @@ export default function SettingsPage() {
       <Tabs
         tabs={[
           { id: 'profile', label: 'Profile' }, { id: 'security', label: 'Security' },
-          { id: 'notifications', label: 'Notifications' }, { id: 'kyc', label: 'KYC' }, { id: 'devices', label: 'Devices' },
+          { id: 'notifications', label: 'Notifications' }, { id: 'kyc', label: 'KYC' },
         ]}
         activeTab={tab}
         onChange={setTab}
@@ -194,37 +220,6 @@ export default function SettingsPage() {
           </CardBody>
         </Card>
 
-        {/* Signed-in devices & location summary — full list under the Devices tab */}
-        <Card>
-          <CardHeader className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold flex items-center gap-2"><Monitor size={16} className="text-amber-400" /> Signed-in Devices &amp; Location</h3>
-            {sessions.length > 0 && <button onClick={() => setTab('devices')} className="text-xs text-amber-400 hover:text-amber-300">View all</button>}
-          </CardHeader>
-          <CardBody className="p-0">
-            {sessionsLoading ? (
-              <div className="p-5 space-y-3">{[1, 2].map((i) => <div key={i} className="skeleton h-10 rounded-lg" />)}</div>
-            ) : sessions.length === 0 ? (
-              <div className="py-8 text-center text-sm text-[#8B949E]">No sign-in activity recorded yet.</div>
-            ) : (
-              sessions.slice(0, 3).map((s, i) => (
-                <div key={s.id} className="flex items-center gap-4 px-5 py-3 border-b border-[#21262D]/50 last:border-0">
-                  <div className="w-9 h-9 rounded-lg bg-[#21262D] flex items-center justify-center"><Monitor size={16} className="text-[#8B949E]" /></div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm flex items-center gap-2">
-                      {s.deviceType || 'Unknown device'}
-                      {i === 0 && <Badge variant="success" size="sm">Current</Badge>}
-                    </div>
-                    <div className="text-xs text-[#8B949E] truncate">
-                      {hideActivity
-                        ? `Hidden · ${formatDate(s.createdAt, 'relative')}`
-                        : [[s.city, s.country].filter(Boolean).join(', '), s.ipAddress, formatDate(s.createdAt, 'relative')].filter(Boolean).join(' · ')}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardBody>
-        </Card>
         </>
       )}
 
@@ -272,6 +267,60 @@ export default function SettingsPage() {
                 <Input placeholder="Set your anti-phishing code" containerClassName="flex-1" />
                 <Button onClick={() => toast.success('Anti-phishing code saved')}>Save</Button>
               </div>
+            </CardBody>
+          </Card>
+
+          {/* Login activity — signed-in devices, IP and location. Stacks on mobile. */}
+          <Card>
+            <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-semibold flex items-center gap-2"><Smartphone size={16} className="text-amber-400" /> Login Activity</h3>
+              <label className="flex items-center gap-2 text-xs text-[#8B949E] cursor-pointer">
+                Hide device &amp; location
+                <Toggle on={hideActivity} onClick={() => setHideActivity(!hideActivity)} />
+              </label>
+            </CardHeader>
+            <CardBody className="p-0">
+              {sessionsLoading ? (
+                <div className="p-5 space-y-3">{[1, 2].map((i) => <div key={i} className="skeleton h-12 rounded-lg" />)}</div>
+              ) : sessions.length === 0 ? (
+                <div className="py-12 px-5 text-center text-sm text-[#8B949E]">No sign-in activity recorded yet. Your next login will appear here with its device, IP and location.</div>
+              ) : (
+                sessions.map((s, i) => (
+                  <div key={s.id} className="px-4 sm:px-5 py-4 border-b border-[#21262D]/50 last:border-0">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-[#21262D] flex items-center justify-center shrink-0">
+                        <Monitor size={18} className="text-[#8B949E]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm flex flex-wrap items-center gap-2">
+                          <span className="break-words">{s.deviceType || 'Unknown device'}</span>
+                          {i === 0 && <Badge variant="success" size="sm">Current</Badge>}
+                        </div>
+                        {/* Each detail on its own line so nothing is squeezed on a phone */}
+                        <dl className="mt-1.5 space-y-0.5 text-xs text-[#8B949E]">
+                          <div className="flex gap-2">
+                            <dt className="w-16 shrink-0 text-[#6E7681]">Location</dt>
+                            <dd className="break-words">{hideActivity ? 'Hidden' : ([s.city, s.country].filter(Boolean).join(', ') || 'Unknown')}</dd>
+                          </div>
+                          <div className="flex gap-2">
+                            <dt className="w-16 shrink-0 text-[#6E7681]">IP</dt>
+                            <dd className="break-all font-mono">{hideActivity ? 'Hidden' : (s.ipAddress || 'Unknown')}</dd>
+                          </div>
+                          <div className="flex gap-2">
+                            <dt className="w-16 shrink-0 text-[#6E7681]">Signed in</dt>
+                            <dd>{formatDate(s.createdAt, 'full')}</dd>
+                          </div>
+                        </dl>
+                        {i !== 0 && (
+                          <Button size="sm" variant="ghost" className="text-red-400 mt-2 -ml-2" onClick={() => revokeSession(s.id)}>
+                            <X size={14} /> Revoke this session
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </CardBody>
           </Card>
         </div>
@@ -326,11 +375,51 @@ export default function SettingsPage() {
             </div>
 
             {kycStatus === 'APPROVED' ? (
-              <div className="grid sm:grid-cols-3 gap-3 text-sm">
-                <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Daily Withdrawal</div><div className="font-medium">$100,000</div></div>
-                <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Identity</div><div className="font-medium text-green-400">Verified</div></div>
-                <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Address</div><div className="font-medium text-green-400">Verified</div></div>
-              </div>
+              <>
+                <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                  <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Daily Withdrawal</div><div className="font-medium">$100,000</div></div>
+                  <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Identity</div><div className="font-medium text-green-400">Verified</div></div>
+                  <div className="p-3 rounded-lg bg-[#0D1117] border border-[#21262D]"><div className="text-[#8B949E] text-xs">Address</div><div className="font-medium text-green-400">Verified</div></div>
+                </div>
+
+                {/* Request a higher withdrawal limit */}
+                <div className="rounded-lg bg-[#0D1117] border border-[#21262D] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-sm flex items-center gap-2"><TrendingUp size={15} className="text-amber-400" /> Need a higher limit?</div>
+                      <p className="text-xs text-[#8B949E] mt-0.5">Request an increase to your $100,000 daily withdrawal limit.</p>
+                    </div>
+                    {!limitOpen && <Button size="sm" variant="outline" onClick={() => setLimitOpen(true)}>Request Increase</Button>}
+                  </div>
+
+                  {limitOpen && (
+                    <div className="mt-4 space-y-3">
+                      <Input
+                        label="Requested daily limit (USD)"
+                        type="number"
+                        value={limitReq.requestedLimit}
+                        onChange={(e) => setLimitReq({ ...limitReq, requestedLimit: e.target.value })}
+                        placeholder="e.g. 500000"
+                      />
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-[#8B949E]">Reason (helps us approve faster)</label>
+                        <textarea
+                          value={limitReq.reason}
+                          onChange={(e) => setLimitReq({ ...limitReq, reason: e.target.value })}
+                          rows={3}
+                          placeholder="e.g. Increased trading volume; funds sourced from business revenue."
+                          className="bg-[#111318] border border-[#21262D] rounded-lg px-3 py-2 text-sm text-[#E6EDF3] outline-none focus:border-amber-500/50 resize-none"
+                        />
+                      </div>
+                      <p className="text-xs text-[#6E7681]">Our compliance team reviews requests within 1-2 business days. You may be asked for proof of source of funds.</p>
+                      <div className="flex gap-3">
+                        <Button variant="outline" fullWidth onClick={() => setLimitOpen(false)}>Cancel</Button>
+                        <Button fullWidth isLoading={requestingLimit} onClick={requestLimit}>Submit Request</Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
             ) : kycStatus === 'PENDING' ? (
               <p className="text-sm text-[#8B949E]">Your documents are being reviewed by our compliance team. This usually takes 24-48 hours. You&apos;ll be notified once complete.</p>
             ) : (
@@ -385,44 +474,6 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {tab === 'devices' && (
-        <Card>
-          <CardHeader className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold flex items-center gap-2"><Smartphone size={16} className="text-amber-400" /> Active Sessions</h3>
-            <label className="flex items-center gap-2 text-xs text-[#8B949E] cursor-pointer">
-              Hide device &amp; location
-              <Toggle on={hideActivity} onClick={() => setHideActivity(!hideActivity)} />
-            </label>
-          </CardHeader>
-          <CardBody className="p-0">
-            {sessionsLoading ? (
-              <div className="p-5 space-y-3">{[1, 2].map((i) => <div key={i} className="skeleton h-12 rounded-lg" />)}</div>
-            ) : sessions.length === 0 ? (
-              <div className="py-12 text-center text-sm text-[#8B949E]">No session data recorded yet. New logins will appear here.</div>
-            ) : (
-              sessions.map((s, i) => (
-                <div key={s.id} className="flex items-center gap-4 px-5 py-4 border-b border-[#21262D]/50 last:border-0">
-                  <div className="w-10 h-10 rounded-lg bg-[#21262D] flex items-center justify-center"><Monitor size={18} className="text-[#8B949E]" /></div>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm flex items-center gap-2">
-                      {s.deviceType || 'Unknown device'}
-                      {i === 0 && <Badge variant="success" size="sm">Most recent</Badge>}
-                    </div>
-                    <div className="text-xs text-[#8B949E]">
-                      {hideActivity
-                        ? `Hidden · ${formatDate(s.createdAt, 'relative')}`
-                        : [[s.city, s.country].filter(Boolean).join(', '), s.ipAddress, s.carrier, formatDate(s.createdAt, 'relative')].filter(Boolean).join(' · ')}
-                    </div>
-                  </div>
-                  {i !== 0 && (
-                    <Button size="sm" variant="ghost" className="text-red-400" onClick={() => revokeSession(s.id)}><X size={14} /> Revoke</Button>
-                  )}
-                </div>
-              ))
-            )}
-          </CardBody>
-        </Card>
-      )}
     </div>
   );
 }
